@@ -99,7 +99,7 @@ re-architecture.
       `db.t4g.micro` (private subnet), S3 buckets (ui, documents) + CloudFront with OAC,
       ACM certs, SSM parameters for secrets, SES identity, IAM task roles (least privilege)
 - [ ] **Register domain**: purchase via Route 53 Domains (`aws route53domains
-      register-domain`, ~$15/yr for `.com`; account has no domains/zones yet) — or, if
+      register-domain`, ~$15/yr for `.com`; no domain/zone exists for this project) — or, if
       `.co.tz` is required, register with a tzNIC-accredited registrar and set its NS
       records to the Route 53 hosted zone
 - [ ] Route 53 hosted zone created (Terraform) and delegation verified (`dig NS`)
@@ -137,8 +137,12 @@ re-architecture.
 >   `engaged-sole-65.clerk.accounts.dev` (test mode); the API task was
 >   redeployed and the client rebuilt so both run with them. Rotate the
 >   secret key in the Clerk dashboard before go-live.
-> - Migrate Terraform state to an S3 backend — it is currently local on the
->   dev machine (README "State" section).
+> - ✅ Terraform state migrated to S3 (2026-06-10):
+>   `s3://auditsaas-tfstate-176835474511/auditsaas/terraform.tfstate`,
+>   versioned + encrypted, S3-native lockfile (no DynamoDB). Run
+>   `terraform init` once after cloning (README "State" section).
+>
+> **Nothing blocks Phase 1.**
 >
 > Design note: the Fargate task runs in **public subnets** (SG admits only the
 > ALB) to avoid a ~$32/mo NAT gateway; RDS stays in private subnets. Default
