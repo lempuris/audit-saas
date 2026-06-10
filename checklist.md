@@ -131,9 +131,12 @@ re-architecture.
 >    `https://api.audit.<domain>` and redeploy the client.
 >
 > Before Phase 1 starts:
-> - Set real Clerk values: SSM parameters `/auditsaas/clerk_secret_key` and
->   `/auditsaas/clerk_jwks_url` (currently `CHANGE_ME`) and repo variable
->   `VITE_CLERK_PUBLISHABLE_KEY` (currently a placeholder).
+> - ✅ Clerk values set (2026-06-10): SSM parameters
+>   `/auditsaas/clerk_secret_key` and `/auditsaas/clerk_jwks_url` and repo
+>   variable `VITE_CLERK_PUBLISHABLE_KEY` hold real values for Clerk instance
+>   `engaged-sole-65.clerk.accounts.dev` (test mode); the API task was
+>   redeployed and the client rebuilt so both run with them. Rotate the
+>   secret key in the Clerk dashboard before go-live.
 > - Migrate Terraform state to an S3 backend — it is currently local on the
 >   dev machine (README "State" section).
 >
