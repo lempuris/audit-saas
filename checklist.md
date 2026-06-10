@@ -110,26 +110,32 @@ re-architecture.
       CloudFront invalidation
 - [x] Alembic migration job runs on deploy (one-off ECS task or entrypoint step)
 
-> **Phase 0 status (2026-06-10):** All code-side items are done and verified
-> (ruff/pytest, lint/tsc/vitest/build, `terraform validate` all green). The three
-> unchecked items are AWS account actions, in order:
+> **Phase 0 status (2026-06-10, deployed):** The stack (44 resources) is
+> applied in `eu-west-1` with `domain_name = ""` and verified end-to-end:
+> the SPA and API are live at https://dn46rvtw2v7wc.cloudfront.net,
+> `/api/health` returns 200 with database connectivity (via both the
+> CloudFront `/api/*` proxy and the ALB directly), GitHub repo variables are
+> set from the Terraform outputs, and merged PRs auto-deploy both components
+> (proven by PRs #2 and #3). Workflow actions are on Node 24-compatible
+> majors ahead of GitHub's 2026-06-16 cutover.
 >
-> 1. **Register the domain** (a purchase — needs the firm's confirmation of
->    `.com` vs `.co.tz`). Commands and the `.co.tz` delegation caveat are in
->    `infra/README.md` step 1.
-> 2. **`terraform apply`** — creates the hosted zone, DNS records, and ACM certs
->    in one shot. Follow `infra/README.md` steps 2–5: copy
->    `terraform.tfvars.example`, apply (the run waits at cert validation until
->    the registrar delegates NS to the new zone — verify with `dig NS`), set the
->    real Clerk values in SSM, and push a first image so ECS has something to run.
->    If the domain was registered via Route 53 Domains, import or replace the
->    auto-created zone (README step 3 note). Afterwards, migrate state to an S3
->    backend (README "State" section).
-> 3. **Wire CI to AWS** — set GitHub repo variables from the Terraform outputs
->    (`AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, `UI_BUCKET`,
->    `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_API_URL`,
->    `VITE_CLERK_PUBLISHABLE_KEY`), then merge any PR touching `audit-api/` or
->    `audit-client/` to exercise the deploy jobs and check acceptance below.
+> The three unchecked items above are all blocked on the firm's `.com` vs
+> `.co.tz` decision and do **not** block Phase 1:
+>
+> 1. **Register the domain** (`infra/README.md` step 1).
+> 2. **Set `domain_name` in `terraform.tfvars` and re-apply** — creates the
+>    hosted zone, DNS records, and ACM certs, and removes the temporary
+>    CloudFront→ALB proxy. If registered outside Route 53, the apply waits at
+>    cert validation until NS records are delegated (verify with `dig NS`).
+> 3. **Update the `VITE_API_URL` repo variable** to
+>    `https://api.audit.<domain>` and redeploy the client.
+>
+> Before Phase 1 starts:
+> - Set real Clerk values: SSM parameters `/auditsaas/clerk_secret_key` and
+>   `/auditsaas/clerk_jwks_url` (currently `CHANGE_ME`) and repo variable
+>   `VITE_CLERK_PUBLISHABLE_KEY` (currently a placeholder).
+> - Migrate Terraform state to an S3 backend — it is currently local on the
+>   dev machine (README "State" section).
 >
 > Design note: the Fargate task runs in **public subnets** (SG admits only the
 > ALB) to avoid a ~$32/mo NAT gateway; RDS stays in private subnets. Default
