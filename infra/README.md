@@ -49,9 +49,11 @@ and a GitHub Actions OIDC deploy role.
 
 ## State
 
-Phase 0 uses local state (`terraform.tfstate`, gitignored). Before anyone else
-runs `apply`, migrate to an S3 backend: create a small state bucket, add a
-`backend "s3"` block to `versions.tf`, and run `terraform init -migrate-state`.
+State lives in the S3 backend declared in `versions.tf`
+(`s3://auditsaas-tfstate-176835474511/auditsaas/terraform.tfstate`, versioned
+and encrypted, S3-native lockfile — no DynamoDB table). The bucket was created
+by hand (it can't live in the stack it stores state for); run
+`terraform init` once after cloning.
 
 ## Costs (approximate)
 

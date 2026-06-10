@@ -65,7 +65,9 @@ resource "aws_cloudfront_function" "spa_rewrite" {
   runtime = "cloudfront-js-2.0"
   publish = true
 
-  code = <<-EOT
+  # replace() strips CRs so the code hash is identical from Windows and
+  # Linux checkouts; without it every Windows plan shows a phantom diff.
+  code = replace(<<-EOT
     function handler(event) {
       var request = event.request;
       if (!request.uri.includes('.')) {
@@ -74,6 +76,7 @@ resource "aws_cloudfront_function" "spa_rewrite" {
       return request;
     }
   EOT
+  , "\r\n", "\n")
 }
 
 # --- CloudFront distribution for the SPA ---
