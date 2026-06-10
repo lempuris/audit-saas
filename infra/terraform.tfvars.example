@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+# Leave domain_name empty until the firm's domain is registered; the stack
+# then serves from the default CloudFront domain (see variables.tf). Set it
+# and re-apply once registration completes.
+domain_name       = ""
+github_repository = "lempuris/audit-saas"
+# aws_region      = "eu-west-1"

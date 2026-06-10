@@ -1,0 +1,49 @@
+export type TokenGetter = () => Promise<string | null>;
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export class ApiClient {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly getToken: TokenGetter,
+  ) {}
+
+  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = await this.getToken();
+    const headers = new Headers(options.headers);
+    headers.set("Content-Type", "application/json");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${this.baseUrl}${path}`, { ...options, headers });
+    if (!response.ok) {
+      throw new ApiError(response.status, await response.text());
+    }
+    return response.json() as Promise<T>;
+  }
+
+  get<T>(path: string): Promise<T> {
+    return this.request<T>(path);
+  }
+
+  post<T>(path: string, body: unknown): Promise<T> {
+    return this.request<T>(path, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  put<T>(path: string, body: unknown): Promise<T> {
+    return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+  }
+
+  delete<T>(path: string): Promise<T> {
+    return this.request<T>(path, { method: "DELETE" });
+  }
+}

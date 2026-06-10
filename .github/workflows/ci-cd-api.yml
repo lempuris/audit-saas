@@ -1,0 +1,76 @@
+name: ci-cd-api
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "audit-api/**"
+      - ".github/workflows/ci-cd-api.yml"
+  pull_request:
+    paths:
+      - "audit-api/**"
+      - ".github/workflows/ci-cd-api.yml"
+
+defaults:
+  run:
+    working-directory: audit-api
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: audit-api/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Ruff format
+        run: uv run ruff format --check .
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Pytest (unit)
+        run: uv run pytest
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: quality
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/auditsaas-api
+        run: |
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # The task definition pins :latest; a forced deployment picks up the
+      # image just pushed and entrypoint.sh runs Alembic migrations on start.
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster auditsaas \
+            --service api \
+            --force-new-deployment
+          aws ecs wait services-stable --cluster auditsaas --services api

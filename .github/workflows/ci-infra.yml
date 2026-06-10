@@ -1,0 +1,36 @@
+name: ci-infra
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "infra/**"
+      - ".github/workflows/ci-infra.yml"
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/ci-infra.yml"
+
+defaults:
+  run:
+    working-directory: infra
+
+# Validation only — `terraform apply` is run manually (see infra/README.md).
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.1"
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Init (no backend)
+        run: terraform init -backend=false -input=false
+
+      - name: Validate
+        run: terraform validate
