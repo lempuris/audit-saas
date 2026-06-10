@@ -88,13 +88,13 @@ re-architecture.
 
 **Goal:** Skeleton SPA on CloudFront and API on Fargate, both live over HTTPS.
 
-- [ ] Initialize monorepo (`/audit-api`, `/audit-client`, `/infra`, `/docs`), README
-- [ ] Scaffold FastAPI app (uv, ruff, pytest markers, settings, `/api/health`),
+- [x] Initialize monorepo (`/audit-api`, `/audit-client`, `/infra`, `/docs`), README
+- [x] Scaffold FastAPI app (uv, ruff, pytest markers, settings, `/api/health`),
       SQLAlchemy + Alembic wired to Postgres, Dockerfile (uvicorn workers)
-- [ ] Scaffold React + TS + Vite app (pnpm, Tailwind, ESLint strict, vitest);
+- [x] Scaffold React + TS + Vite app (pnpm, Tailwind, ESLint strict, vitest);
       Clerk provider + sign-in screen; API client with auth token interceptor
-- [ ] Local dev: docker-compose for Postgres; `uv run` API on :5000, `pnpm dev` on :3001
-- [ ] Terraform stack in `/infra`: VPC (public/private subnets), ECR, ECS cluster +
+- [x] Local dev: docker-compose for Postgres; `uv run` API on :5000, `pnpm dev` on :3001
+- [x] Terraform stack in `/infra`: VPC (public/private subnets), ECR, ECS cluster +
       Fargate service (1 task) + ALB + target group health checks, RDS PostgreSQL
       `db.t4g.micro` (private subnet), S3 buckets (ui, documents) + CloudFront with OAC,
       ACM certs, SSM parameters for secrets, SES identity, IAM task roles (least privilege)
@@ -105,10 +105,41 @@ re-architecture.
 - [ ] Route 53 hosted zone created (Terraform) and delegation verified (`dig NS`)
 - [ ] DNS records: `audit.<domain>` → CloudFront, `api.audit.<domain>` → ALB;
       ACM certificates issued via DNS validation in both required regions
-- [ ] GitHub Actions — `ci-cd-api.yml`: ruff + pytest + docker build → push ECR →
+- [x] GitHub Actions — `ci-cd-api.yml`: ruff + pytest + docker build → push ECR →
       update ECS service; `ci-cd-client.yml`: lint + tsc + vitest + build → S3 sync →
       CloudFront invalidation
-- [ ] Alembic migration job runs on deploy (one-off ECS task or entrypoint step)
+- [x] Alembic migration job runs on deploy (one-off ECS task or entrypoint step)
+
+> **Phase 0 status (2026-06-10):** All code-side items are done and verified
+> (ruff/pytest, lint/tsc/vitest/build, `terraform validate` all green). The three
+> unchecked items are AWS account actions, in order:
+>
+> 1. **Register the domain** (a purchase — needs the firm's confirmation of
+>    `.com` vs `.co.tz`). Commands and the `.co.tz` delegation caveat are in
+>    `infra/README.md` step 1.
+> 2. **`terraform apply`** — creates the hosted zone, DNS records, and ACM certs
+>    in one shot. Follow `infra/README.md` steps 2–5: copy
+>    `terraform.tfvars.example`, apply (the run waits at cert validation until
+>    the registrar delegates NS to the new zone — verify with `dig NS`), set the
+>    real Clerk values in SSM, and push a first image so ECS has something to run.
+>    If the domain was registered via Route 53 Domains, import or replace the
+>    auto-created zone (README step 3 note). Afterwards, migrate state to an S3
+>    backend (README "State" section).
+> 3. **Wire CI to AWS** — set GitHub repo variables from the Terraform outputs
+>    (`AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, `UI_BUCKET`,
+>    `CLOUDFRONT_DISTRIBUTION_ID`, `VITE_API_URL`,
+>    `VITE_CLERK_PUBLISHABLE_KEY`), then merge any PR touching `audit-api/` or
+>    `audit-client/` to exercise the deploy jobs and check acceptance below.
+>
+> Design note: the Fargate task runs in **public subnets** (SG admits only the
+> ALB) to avoid a ~$32/mo NAT gateway; RDS stays in private subnets. Default
+> region is `eu-west-1` (`infra/variables.tf`) — `af-south-1` is closer to
+> Tanzania but is an opt-in region not enabled on this AWS account.
+>
+> Domain registration is **not** a blocker for `terraform apply`: with
+> `domain_name = ""` the stack skips Route 53/ACM/SES and serves the SPA from
+> the default CloudFront domain (which proxies `/api/*` to the ALB). When the
+> domain lands, set `domain_name` and re-apply.
 
 **Acceptance:** `https://audit.retrofitbusinesspact.co.tz` serves the SPA;
 `https://api.audit.retrofitbusinesspact.co.tz/api/health` returns 200 and confirms
