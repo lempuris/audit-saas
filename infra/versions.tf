@@ -12,8 +12,16 @@ terraform {
     }
   }
 
-  # Phase 0 bootstrap uses local state. Once the stack exists, migrate to an
-  # S3 backend (see infra/README.md) before a second person ever runs apply.
+  # State bucket created by hand (versioned, encrypted, private) — it can't
+  # live in the stack it stores state for. Locking uses S3 native lockfiles
+  # (Terraform >= 1.10), so no DynamoDB table is needed.
+  backend "s3" {
+    bucket       = "auditsaas-tfstate-176835474511"
+    key          = "auditsaas/terraform.tfstate"
+    region       = "eu-west-1"
+    use_lockfile = true
+    encrypt      = true
+  }
 }
 
 provider "aws" {
