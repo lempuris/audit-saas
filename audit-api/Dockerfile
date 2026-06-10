@@ -13,6 +13,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
+# The exec bit can be lost when the image is built from a Windows checkout.
+RUN chmod +x entrypoint.sh
+
 EXPOSE 5000
 
 CMD ["./entrypoint.sh"]
