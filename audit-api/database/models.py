@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -59,6 +59,36 @@ class Client(BaseModel):
     # [{"name": ..., "email": ..., "phone": ..., "position": ...}]
     contacts: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
     archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class Engagement(BaseModel):
+    """One audit/review engagement for a client and fiscal year. Status
+    follows the workflow enforced in engagements_service; moving to fieldwork
+    requires every team member's independence confirmation."""
+
+    __tablename__ = "engagements"
+
+    client_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clients.id"), nullable=False, index=True
+    )
+    engagement_type: Mapped[str] = mapped_column(String, nullable=False)
+    fiscal_year: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft", index=True)
+
+
+class EngagementTeamMember(BaseModel):
+    __tablename__ = "engagement_team_members"
+    __table_args__ = (UniqueConstraint("engagement_id", "clerk_user_id"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    clerk_user_id: Mapped[str] = mapped_column(String, nullable=False)
+    role_on_engagement: Mapped[str | None] = mapped_column(String, nullable=True)
+    independence_confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    independence_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class AuditTrailEntry(BaseModel):
