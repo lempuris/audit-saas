@@ -166,21 +166,28 @@ DB connectivity; a merged PR auto-deploys both.
 
 - [x] Clerk backend token verification middleware (RS256 vs instance JWKS, default
       deny, `/api/me`) — merged to `master` 2026-06-11
-- [ ] Clerk integration remainder: user sync webhook (`clerk_webhook_router`),
-      **MFA enforced** via Clerk policy
+- [x] Clerk user sync webhook (`clerk_webhook_router`): Svix-verified, syncs
+      user.created/updated/deleted into the local `users` mirror — merged 2026-06-11 (PR #10)
+- [ ] **MFA enforced** via Clerk policy (dashboard config — steps in
+      `docs/clerk-setup.md` §3; do together with the session-token role claim, §1)
 - [x] RBAC backend permission checks: Admin / Partner / Manager / Auditor roles
       (Clerk metadata → `require_roles()` per route, default deny) — merged
       2026-06-11
-- [ ] RBAC permission matrix documented in `/docs`
-- [ ] User management screens (Admin): invite via Clerk, deactivate, assign role
-- [ ] **Audit trail feature**: middleware + service writing immutable log of all writes
-      and logins; read-only viewer screen for Admin/Partner
-- [ ] **Clients feature** (router/service/models + screens): CRUD, industry, contacts,
-      risk rating
-- [ ] **Engagements feature**: create engagement (client, type, fiscal year, status
-      workflow), team assignment, independence/conflict confirmation checklist
-- [ ] Client shell: navigation, role-aware menus, client list/detail,
-      engagement list/detail screens
+- [x] RBAC permission matrix documented in `/docs` (`docs/rbac-permission-matrix.md`,
+      PR #15)
+- [x] User management screens (Admin): invite via Clerk, deactivate, assign role
+      (API PR #12, screen PR #17)
+- [x] **Audit trail feature**: immutable log of all writes (service hook with
+      before/after snapshots) and logins (session.created webhook); read-only viewer
+      for Admin/Partner (PRs #11, #18)
+- [x] **Clients feature** (router/service/models + screens): CRUD, industry, contacts,
+      risk rating; DELETE archives instead of removing (PRs #13, #19)
+- [x] **Engagements feature**: create engagement (client, type, fiscal year, status
+      workflow), team assignment, independence/conflict confirmation checklist —
+      fieldwork blocked until all members confirm; completion requires Partner/Admin
+      (PRs #14, #20)
+- [x] Client shell: navigation, role-aware menus, client list/detail,
+      engagement list/detail screens (PR #16)
 
 > **Phase 1 status (2026-06-11, in progress):** Backend Clerk token
 > verification is **merged to `master`** (branch `feat/auth-middleware`,
@@ -200,15 +207,23 @@ DB connectivity; a merged PR auto-deploys both.
 > - `pyjwt[crypto]>=2.13` added to `pyproject.toml` + refreshed `uv.lock`;
 >   `.env.example` now carries the dev-instance JWKS URL (public, not a secret).
 >
-> Verified before merge: `uv sync --frozen` clean, ruff format/check clean,
-> pytest 13 passed.
+> **Phase 1 build complete (2026-06-11):** all feature slices are implemented
+> and PR'd as a stacked chain (#11 audit trail → #12 users API → #13 clients →
+> #14 engagements → #15 docs → #16 shell → #17 users screen → #18 audit viewer
+> → #19 clients screens → #20 engagements screens; merge in order, each is
+> based on the previous). Backend: pytest 67 passed, ruff clean. Frontend:
+> vitest 31 passed, ESLint/tsc/build clean. Migrations 0001–0004 apply on
+> deploy via the entrypoint.
 >
-> Next up in Phase 1: user sync webhook (`clerk_webhook_router`), MFA
-> enforcement via Clerk policy, RBAC permission matrix doc, user management
-> screens, audit trail, clients + engagements features, client shell.
+> Remaining for Phase 1 acceptance (after merging the chain):
 >
-> Clerk dashboard TODO: Sessions → Customize session token must add
-> `{"role": "{{user.public_metadata.role}}"}` or every user's role is null.
+> 1. **Clerk dashboard config** (docs/clerk-setup.md): session-token role
+>    claim (§1 — without it every role gate 403s), webhook endpoint + SSM
+>    secret + redeploy (§2), MFA required (§3).
+> 2. Assign roles to the firm's users via public_metadata / the Users screen.
+> 3. Verify acceptance end-to-end on the deployed app: auditor blocked from
+>    admin endpoints, writes appear in the audit trail, engagement created
+>    through the UI.
 
 **Acceptance:** Auditor role cannot reach admin endpoints (tested); every write
 appears in the audit trail; an engagement can be created end-to-end in the UI.
