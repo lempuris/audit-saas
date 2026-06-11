@@ -179,7 +179,8 @@ DB connectivity; a merged PR auto-deploys both.
       engagement list/detail screens
 
 > **Phase 1 status (2026-06-11, in progress):** Backend Clerk token
-> verification is implemented on branch `feat/auth-middleware`:
+> verification is **merged to `master`** (branch `feat/auth-middleware`,
+> PR created and merged 2026-06-11; auto-deploy via CI):
 >
 > - `middleware/auth.py` — RS256 verification against the instance JWKS
 >   (PyJWT), default deny on every path except `/api/health` (ALB health
@@ -192,12 +193,15 @@ DB connectivity; a merged PR auto-deploys both.
 > - `routers/auth_router.py` — `GET /api/me` returns the caller's identity.
 > - `tests/test_auth.py` — 12 unit tests (401 paths, role extraction,
 >   403/200 role gates, health stays public) via a stubbed JWKS client.
-> - `pyjwt[crypto]>=2.13` added to `pyproject.toml`; `.env.example` now
->   carries the dev-instance JWKS URL (public, not a secret).
+> - `pyjwt[crypto]>=2.13` added to `pyproject.toml` + refreshed `uv.lock`;
+>   `.env.example` now carries the dev-instance JWKS URL (public, not a secret).
 >
-> Remaining before merge: refresh `uv.lock` (CI runs `uv sync --frozen`),
-> run ruff + pytest, push, draft PR — all blocked on 2026-06-11 by a machine
-> connectivity outage (PyPI/GitHub unreachable).
+> Verified before merge: `uv sync --frozen` clean, ruff format/check clean,
+> pytest 13 passed.
+>
+> Next up in Phase 1: user sync webhook (`clerk_webhook_router`), MFA
+> enforcement via Clerk policy, RBAC permission matrix doc, user management
+> screens, audit trail, clients + engagements features, client shell.
 >
 > Clerk dashboard TODO: Sessions → Customize session token must add
 > `{"role": "{{user.public_metadata.role}}"}` or every user's role is null.
