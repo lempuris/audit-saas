@@ -52,7 +52,11 @@ def user_created_body(**overrides: Any) -> bytes:
 class FakeSession:
     def __init__(self) -> None:
         self.statements: list[Any] = []
+        self.added: list[Any] = []
         self.committed = False
+
+    def add(self, instance: Any) -> None:
+        self.added.append(instance)
 
     async def execute(self, statement: Any) -> None:
         self.statements.append(statement)
@@ -201,6 +205,10 @@ async def test_user_created_upserts_and_returns_204(db: FakeSession) -> None:
     compiled = str(db.statements[0].compile(dialect=postgresql.dialect()))
     assert "INSERT INTO users" in compiled
     assert "ON CONFLICT" in compiled
+    assert len(db.added) == 1
+    assert db.added[0].action == "create"
+    assert db.added[0].entity_type == "user"
+    assert db.added[0].entity_id == "user_abc"
 
 
 @pytest.mark.unit
@@ -214,12 +222,37 @@ async def test_user_deleted_deactivates(db: FakeSession) -> None:
     assert len(db.statements) == 1
     assert isinstance(db.statements[0], Update)
     assert db.committed
+    assert len(db.added) == 1
+    assert db.added[0].action == "delete"
 
 
 @pytest.mark.unit
-async def test_unhandled_event_is_acknowledged_without_writes(db: FakeSession) -> None:
-    body = json.dumps({"type": "session.created", "object": "event", "data": {}}).encode()
+async def test_session_created_writes_login_audit_row(db: FakeSession) -> None:
+    body = json.dumps(
+        {
+            "type": "session.created",
+            "object": "event",
+            "data": {"id": "sess_1", "user_id": "user_abc"},
+        }
+    ).encode()
     async with client() as c:
         response = await c.post(WEBHOOK_PATH, content=body, headers=sign(body))
     assert response.status_code == 204
     assert db.statements == []
+    assert len(db.added) == 1
+    entry = db.added[0]
+    assert entry.action == "login"
+    assert entry.actor_clerk_user_id == "user_abc"
+    assert entry.entity_type == "session"
+    assert entry.entity_id == "sess_1"
+    assert db.committed
+
+
+@pytest.mark.unit
+async def test_unhandled_event_is_acknowledged_without_writes(db: FakeSession) -> None:
+    body = json.dumps({"type": "organization.created", "object": "event", "data": {}}).encode()
+    async with client() as c:
+        response = await c.post(WEBHOOK_PATH, content=body, headers=sign(body))
+    assert response.status_code == 204
+    assert db.statements == []
+    assert db.added == []

@@ -18,12 +18,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User
 from models.clerk_webhook_models import ClerkEvent, ClerkUserData
+from services import audit_trail_service
+from services.audit_trail_service import SYSTEM_ACTOR
 
 # Svix default tolerance: deliveries older/newer than this are replays or
 # clock problems and must be rejected.
 TIMESTAMP_TOLERANCE_SECONDS = 300
 
-HANDLED_EVENTS = frozenset({"user.created", "user.updated", "user.deleted"})
+HANDLED_EVENTS = frozenset({"user.created", "user.updated", "user.deleted", "session.created"})
 
 
 class WebhookVerificationError(Exception):
@@ -68,12 +70,33 @@ async def apply_event(session: AsyncSession, event: ClerkEvent) -> None:
     if event.type not in HANDLED_EVENTS:
         return
 
+    if event.type == "session.created":
+        # Logins happen at Clerk, so this webhook is where they reach the
+        # audit trail.
+        audit_trail_service.record(
+            session,
+            actor=str(event.data.get("user_id", "")),
+            action="login",
+            entity_type="session",
+            entity_id=str(event.data.get("id", "")) or None,
+        )
+        await session.commit()
+        return
+
     data = ClerkUserData.model_validate(event.data)
 
     if event.type == "user.deleted":
         # Keep the row so audit-trail entries can always resolve their author.
         await session.execute(
             update(User).where(User.clerk_user_id == data.id).values(is_active=False)
+        )
+        audit_trail_service.record(
+            session,
+            actor=SYSTEM_ACTOR,
+            action="delete",
+            entity_type="user",
+            entity_id=data.id,
+            after={"is_active": False},
         )
     else:
         values = {
@@ -86,5 +109,13 @@ async def apply_event(session: AsyncSession, event: ClerkEvent) -> None:
         statement = insert(User).values(clerk_user_id=data.id, **values)
         await session.execute(
             statement.on_conflict_do_update(index_elements=[User.clerk_user_id], set_=values)
+        )
+        audit_trail_service.record(
+            session,
+            actor=SYSTEM_ACTOR,
+            action="create" if event.type == "user.created" else "update",
+            entity_type="user",
+            entity_id=data.id,
+            after=values,
         )
     await session.commit()
