@@ -189,37 +189,22 @@ DB connectivity; a merged PR auto-deploys both.
 - [x] Client shell: navigation, role-aware menus, client list/detail,
       engagement list/detail screens (PR #16)
 
-> **Phase 1 status (2026-06-11, in progress):** Backend Clerk token
-> verification is **merged to `master`** (branch `feat/auth-middleware`,
-> PR created and merged 2026-06-11; auto-deploy via CI):
+> **Phase 1 status (2026-06-11, merged & deployed):** All Phase 1 code is in
+> `master` — auth middleware + `/api/me` (PR #9), Clerk user-sync webhook +
+> `users` table (PR #10), and the full feature chain merged in order on
+> 2026-06-11: #11 audit trail → #12 users API → #13 clients → #14 engagements
+> → #15 RBAC/Clerk docs → #16 client shell → #17 users screen → #18 audit
+> viewer → #19 clients screens → #20 engagements screens → #21 checklist.
+> `ci-cd-api` and `ci-cd-client` deploys are green; migrations 0001–0004
+> (users, audit_trail, clients, engagements + team members) applied on deploy.
+> Backend: pytest 67 passed, ruff clean. Frontend: vitest 31 passed,
+> ESLint/tsc/build clean.
 >
-> - `middleware/auth.py` — RS256 verification against the instance JWKS
->   (PyJWT), default deny on every path except `/api/health` (ALB health
->   checks), `azp` validated against the CORS origin allowlist,
->   `AuthenticatedUser` attached to `request.state`; JWKS-connectivity
->   failures propagate as 500s (not 401s).
-> - `models/auth_models.py` — `Role` enum (admin/partner/manager/auditor) +
->   `AuthenticatedUser`; `require_roles()` dependency = per-route RBAC,
->   default deny. Unknown/missing role authenticates but fails every gate.
-> - `routers/auth_router.py` — `GET /api/me` returns the caller's identity.
-> - `tests/test_auth.py` — 12 unit tests (401 paths, role extraction,
->   403/200 role gates, health stays public) via a stubbed JWKS client.
-> - `pyjwt[crypto]>=2.13` added to `pyproject.toml` + refreshed `uv.lock`;
->   `.env.example` now carries the dev-instance JWKS URL (public, not a secret).
->
-> **Phase 1 build complete (2026-06-11):** all feature slices are implemented
-> and PR'd as a stacked chain (#11 audit trail → #12 users API → #13 clients →
-> #14 engagements → #15 docs → #16 shell → #17 users screen → #18 audit viewer
-> → #19 clients screens → #20 engagements screens; merge in order, each is
-> based on the previous). Backend: pytest 67 passed, ruff clean. Frontend:
-> vitest 31 passed, ESLint/tsc/build clean. Migrations 0001–0004 apply on
-> deploy via the entrypoint.
->
-> Remaining for Phase 1 acceptance (after merging the chain):
+> Remaining for Phase 1 acceptance:
 >
 > 1. **Clerk dashboard config** (docs/clerk-setup.md): session-token role
 >    claim (§1 — without it every role gate 403s), webhook endpoint + SSM
->    secret + redeploy (§2), MFA required (§3).
+>    secret + redeploy (§2), MFA required (§3) — the one unchecked item above.
 > 2. Assign roles to the firm's users via public_metadata / the Users screen.
 > 3. Verify acceptance end-to-end on the deployed app: auditor blocked from
 >    admin endpoints, writes appear in the audit trail, engagement created
