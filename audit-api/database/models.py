@@ -47,6 +47,20 @@ class User(BaseModel):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
+class Client(BaseModel):
+    """An audit client of the firm. Never hard-deleted — DELETE archives, so
+    engagement history stays intact."""
+
+    __tablename__ = "clients"
+
+    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    industry: Mapped[str | None] = mapped_column(String, nullable=True)
+    risk_rating: Mapped[str | None] = mapped_column(String, nullable=True)  # low/medium/high
+    # [{"name": ..., "email": ..., "phone": ..., "position": ...}]
+    contacts: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
