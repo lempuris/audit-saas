@@ -10,6 +10,7 @@ from routers import (
     clients_router,
     engagements_router,
     health_router,
+    materiality_router,
     trial_balance_router,
     users_router,
 )
@@ -38,3 +39,4 @@ app.include_router(users_router.router)
 app.include_router(clients_router.router)
 app.include_router(engagements_router.router)
 app.include_router(trial_balance_router.router)
+app.include_router(materiality_router.router)

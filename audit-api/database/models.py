@@ -136,6 +136,31 @@ class TrialBalanceLine(BaseModel):
     fs_area: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
 
+class MaterialityAssessment(BaseModel):
+    """Materiality for an engagement (one per engagement). Amounts are
+    computed by the service from the benchmark amount and percentages and
+    stored so approved values are immutable even if the formula changes.
+    Approval (Partner/Admin) locks the row until it is reopened."""
+
+    __tablename__ = "materiality_assessments"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), unique=True, index=True, nullable=False
+    )
+    benchmark: Mapped[str] = mapped_column(String, nullable=False)
+    benchmark_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    overall_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    overall_materiality: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    performance_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    performance_materiality: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    clearly_trivial_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    clearly_trivial_threshold: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    rationale: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft")
+    approved_by: Mapped[str | None] = mapped_column(String, nullable=True)  # Clerk user id
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
