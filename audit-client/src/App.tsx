@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import RequireRole from "./components/RequireRole";
 import { MeProvider } from "./contexts/MeContext";
 import AuditTrailScreen from "./screens/AuditTrailScreen";
+import ClientDetailScreen from "./screens/ClientDetailScreen";
 import ClientsScreen from "./screens/ClientsScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
 import HomeScreen from "./screens/HomeScreen";
@@ -24,6 +25,7 @@ export default function App() {
               <Route element={<Layout />}>
                 <Route index element={<HomeScreen />} />
                 <Route path="clients" element={<ClientsScreen />} />
+                <Route path="clients/:clientId" element={<ClientDetailScreen />} />
                 <Route path="engagements" element={<EngagementsScreen />} />
                 <Route
                   path="audit-trail"
