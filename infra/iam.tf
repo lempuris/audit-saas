@@ -33,6 +33,7 @@ resource "aws_iam_role_policy" "task_execution_ssm" {
         aws_ssm_parameter.database_url.arn,
         aws_ssm_parameter.clerk_secret_key.arn,
         aws_ssm_parameter.clerk_jwks_url.arn,
+        aws_ssm_parameter.clerk_webhook_secret.arn,
       ]
     }]
   })

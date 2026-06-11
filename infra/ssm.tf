@@ -27,3 +27,13 @@ resource "aws_ssm_parameter" "clerk_jwks_url" {
     ignore_changes = [value]
   }
 }
+
+resource "aws_ssm_parameter" "clerk_webhook_secret" {
+  name  = "/${var.project}/clerk_webhook_secret"
+  type  = "SecureString"
+  value = "CHANGE_ME"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
