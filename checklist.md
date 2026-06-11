@@ -178,6 +178,30 @@ DB connectivity; a merged PR auto-deploys both.
 - [ ] Client shell: navigation, role-aware menus, client list/detail,
       engagement list/detail screens
 
+> **Phase 1 status (2026-06-11, in progress):** Backend Clerk token
+> verification is implemented on branch `feat/auth-middleware`:
+>
+> - `middleware/auth.py` — RS256 verification against the instance JWKS
+>   (PyJWT), default deny on every path except `/api/health` (ALB health
+>   checks), `azp` validated against the CORS origin allowlist,
+>   `AuthenticatedUser` attached to `request.state`; JWKS-connectivity
+>   failures propagate as 500s (not 401s).
+> - `models/auth_models.py` — `Role` enum (admin/partner/manager/auditor) +
+>   `AuthenticatedUser`; `require_roles()` dependency = per-route RBAC,
+>   default deny. Unknown/missing role authenticates but fails every gate.
+> - `routers/auth_router.py` — `GET /api/me` returns the caller's identity.
+> - `tests/test_auth.py` — 12 unit tests (401 paths, role extraction,
+>   403/200 role gates, health stays public) via a stubbed JWKS client.
+> - `pyjwt[crypto]>=2.13` added to `pyproject.toml`; `.env.example` now
+>   carries the dev-instance JWKS URL (public, not a secret).
+>
+> Remaining before merge: refresh `uv.lock` (CI runs `uv sync --frozen`),
+> run ruff + pytest, push, draft PR — all blocked on 2026-06-11 by a machine
+> connectivity outage (PyPI/GitHub unreachable).
+>
+> Clerk dashboard TODO: Sessions → Customize session token must add
+> `{"role": "{{user.public_metadata.role}}"}` or every user's role is null.
+
 **Acceptance:** Auditor role cannot reach admin endpoints (tested); every write
 appears in the audit trail; an engagement can be created end-to-end in the UI.
 
