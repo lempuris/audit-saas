@@ -1,4 +1,4 @@
-﻿"""Trial balance import: parse XLSX/CSV, validate against a user-supplied
+"""Trial balance import: parse XLSX/CSV, validate against a user-supplied
 column mapping, suggest a financial-statement area per line, and serve
 per-area totals with prior-year comparison.
 
