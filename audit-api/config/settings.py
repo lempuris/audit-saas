@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3001"
     clerk_secret_key: str = ""
     clerk_jwks_url: str = ""
+    clerk_webhook_secret: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -45,6 +45,7 @@ resource "aws_ecs_task_definition" "api" {
         { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.database_url.arn },
         { name = "CLERK_SECRET_KEY", valueFrom = aws_ssm_parameter.clerk_secret_key.arn },
         { name = "CLERK_JWKS_URL", valueFrom = aws_ssm_parameter.clerk_jwks_url.arn },
+        { name = "CLERK_WEBHOOK_SECRET", valueFrom = aws_ssm_parameter.clerk_webhook_secret.arn },
       ]
 
       logConfiguration = {

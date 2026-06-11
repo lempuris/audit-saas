@@ -27,8 +27,9 @@ from config.settings import get_settings
 from models.auth_models import AuthenticatedUser, Role
 
 # /api/health must stay unauthenticated: the ALB target group health checks
-# hit it with no credentials.
-PUBLIC_PATHS = frozenset({"/api/health"})
+# hit it with no credentials. /api/webhooks/clerk carries no session token —
+# it is authenticated by its Svix signature in the webhook router instead.
+PUBLIC_PATHS = frozenset({"/api/health", "/api/webhooks/clerk"})
 
 
 class ClerkTokenVerifier:
