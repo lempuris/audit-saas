@@ -63,19 +63,33 @@ class FakeScalarResult:
 
 
 class FakeSession:
-    """Records writes; serves canned rows for any select. refresh() fills the
-    server-default timestamp columns the way a real flush would."""
+    """Records writes; serves canned rows for selects, filtered to the
+    entity the query targets (where-clauses are not evaluated — arrange rows
+    per test). refresh() fills the server-default timestamp columns the way
+    a real flush would."""
 
     def __init__(self, rows: list[Any] | None = None) -> None:
         self.rows = rows or []
         self.added: list[Any] = []
+        self.deleted: list[Any] = []
         self.committed = False
 
     def add(self, instance: Any) -> None:
         self.added.append(instance)
 
-    async def scalars(self, _query: Any) -> FakeScalarResult:
-        return FakeScalarResult(self.rows)
+    async def delete(self, instance: Any) -> None:
+        self.deleted.append(instance)
+        if instance in self.rows:
+            self.rows.remove(instance)
+
+    async def scalars(self, query: Any) -> FakeScalarResult:
+        try:
+            entity = query.column_descriptions[0]["entity"]
+        except (AttributeError, IndexError, KeyError, TypeError):
+            entity = None
+        if entity is None:
+            return FakeScalarResult(self.rows)
+        return FakeScalarResult([row for row in self.rows if isinstance(row, entity)])
 
     async def commit(self) -> None:
         self.committed = True

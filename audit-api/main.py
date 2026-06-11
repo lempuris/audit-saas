@@ -8,6 +8,7 @@ from routers import (
     auth_router,
     clerk_webhook_router,
     clients_router,
+    engagements_router,
     health_router,
     users_router,
 )
@@ -34,3 +35,4 @@ app.include_router(clerk_webhook_router.router)
 app.include_router(audit_trail_router.router)
 app.include_router(users_router.router)
 app.include_router(clients_router.router)
+app.include_router(engagements_router.router)
