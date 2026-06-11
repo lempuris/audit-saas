@@ -34,8 +34,13 @@ Roles are assigned by setting `public_metadata.role` on the user to one of
    ```
 5. Force a new ECS deployment so the task picks it up:
    ```
-   aws ecs update-service --cluster auditsaas --service auditsaas-api --force-new-deployment
+   aws ecs update-service --cluster auditsaas --service api --force-new-deployment
    ```
+   If the running task definition does not yet inject `CLERK_WEBHOOK_SECRET`
+   (check `aws ecs describe-task-definition --task-definition auditsaas-api
+   --query "taskDefinition.containerDefinitions[0].secrets"`), run
+   `terraform apply` in `/infra` instead — it registers the new task
+   definition revision and rolls the service. Done 2026-06-11 (revision 2).
 
 ## 3. Enforce MFA (required — Phase 1 acceptance)
 
