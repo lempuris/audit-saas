@@ -28,6 +28,9 @@ export class ApiClient {
     if (!response.ok) {
       throw new ApiError(response.status, await response.text());
     }
+    if (response.status === 204) {
+      return undefined as T;
+    }
     return response.json() as Promise<T>;
   }
 
@@ -35,12 +38,19 @@ export class ApiClient {
     return this.request<T>(path);
   }
 
-  post<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>(path, { method: "POST", body: JSON.stringify(body) });
+  post<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>(path, {
+      method: "POST",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
   }
 
   put<T>(path: string, body: unknown): Promise<T> {
     return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+  }
+
+  patch<T>(path: string, body: unknown): Promise<T> {
+    return this.request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
   }
 
   delete<T>(path: string): Promise<T> {
