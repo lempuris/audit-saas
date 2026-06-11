@@ -168,8 +168,9 @@ DB connectivity; a merged PR auto-deploys both.
       deny, `/api/me`) — merged to `master` 2026-06-11
 - [x] Clerk user sync webhook (`clerk_webhook_router`): Svix-verified, syncs
       user.created/updated/deleted into the local `users` mirror — merged 2026-06-11 (PR #10)
-- [ ] **MFA enforced** via Clerk policy (dashboard config — steps in
-      `docs/clerk-setup.md` §3; do together with the session-token role claim, §1)
+- [x] **MFA enforced** via Clerk policy (dashboard config — steps in
+      `docs/clerk-setup.md` §3; done 2026-06-11 together with the session-token
+      role claim, §1)
 - [x] RBAC backend permission checks: Admin / Partner / Manager / Auditor roles
       (Clerk metadata → `require_roles()` per route, default deny) — merged
       2026-06-11
@@ -200,15 +201,23 @@ DB connectivity; a merged PR auto-deploys both.
 > Backend: pytest 67 passed, ruff clean. Frontend: vitest 31 passed,
 > ESLint/tsc/build clean.
 >
+> **Clerk dashboard config done (2026-06-11)**, all of docs/clerk-setup.md
+> §1–3: session-token role claim added and verified on the deployed app;
+> webhook endpoint created (user.created/updated/deleted + session.created)
+> with its signing secret in SSM (`/auditsaas/clerk_webhook_secret`); MFA
+> (TOTP) set to required. Wiring the webhook secret required a manual
+> `terraform apply` (task definition revision 2 now injects
+> `CLERK_WEBHOOK_SECRET`; the parameter was imported into Terraform state) —
+> the Phase 1 Terraform changes had been merged but never applied.
+>
 > Remaining for Phase 1 acceptance:
 >
-> 1. **Clerk dashboard config** (docs/clerk-setup.md): session-token role
->    claim (§1 — without it every role gate 403s), webhook endpoint + SSM
->    secret + redeploy (§2), MFA required (§3) — the one unchecked item above.
-> 2. Assign roles to the firm's users via public_metadata / the Users screen.
-> 3. Verify acceptance end-to-end on the deployed app: auditor blocked from
->    admin endpoints, writes appear in the audit trail, engagement created
->    through the UI.
+> 1. Assign roles to the firm's users via public_metadata / the Users screen
+>    (one user assigned so far).
+> 2. Verify acceptance end-to-end on the deployed app: auditor blocked from
+>    admin endpoints, writes appear in the audit trail (including
+>    session.created logins via the webhook), engagement created through
+>    the UI.
 
 **Acceptance:** Auditor role cannot reach admin endpoints (tested); every write
 appears in the audit trail; an engagement can be created end-to-end in the UI.
