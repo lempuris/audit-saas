@@ -164,10 +164,14 @@ DB connectivity; a merged PR auto-deploys both.
 
 **Goal:** Staff log in securely; firm manages clients and engagements.
 
-- [ ] Clerk integration end-to-end: backend token verification middleware, user sync
-      webhook (`clerk_webhook_router`), **MFA enforced** via Clerk policy
-- [ ] RBAC: Admin / Partner / Manager / Auditor roles (Clerk metadata → backend
-      permission checks); permission matrix documented in `/docs`
+- [x] Clerk backend token verification middleware (RS256 vs instance JWKS, default
+      deny, `/api/me`) — merged to `master` 2026-06-11
+- [ ] Clerk integration remainder: user sync webhook (`clerk_webhook_router`),
+      **MFA enforced** via Clerk policy
+- [x] RBAC backend permission checks: Admin / Partner / Manager / Auditor roles
+      (Clerk metadata → `require_roles()` per route, default deny) — merged
+      2026-06-11
+- [ ] RBAC permission matrix documented in `/docs`
 - [ ] User management screens (Admin): invite via Clerk, deactivate, assign role
 - [ ] **Audit trail feature**: middleware + service writing immutable log of all writes
       and logins; read-only viewer screen for Admin/Partner
