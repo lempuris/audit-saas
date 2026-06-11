@@ -1,8 +1,18 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -89,6 +99,41 @@ class EngagementTeamMember(BaseModel):
     independence_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class TrialBalance(BaseModel):
+    """An imported trial balance for an engagement (one per engagement —
+    re-importing replaces it). Lines cascade-delete with the parent."""
+
+    __tablename__ = "trial_balances"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), unique=True, index=True, nullable=False
+    )
+    source_filename: Mapped[str] = mapped_column(String, nullable=False)
+    imported_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
+class TrialBalanceLine(BaseModel):
+    """One account line. Sign convention: debit balances positive, credit
+    balances negative, so a valid TB sums to zero."""
+
+    __tablename__ = "trial_balance_lines"
+    __table_args__ = (UniqueConstraint("trial_balance_id", "account_code"),)
+
+    trial_balance_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("trial_balances.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    account_code: Mapped[str] = mapped_column(String, nullable=False)
+    account_name: Mapped[str] = mapped_column(String, nullable=False)
+    balance: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    prior_year_balance: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
+    # Financial statement area (models/trial_balance_models.FSArea); suggested
+    # on import from the account name, then refined by the user.
+    fs_area: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
 
 
 class AuditTrailEntry(BaseModel):
