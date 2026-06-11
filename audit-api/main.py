@@ -3,7 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_settings
 from middleware.auth import ClerkAuthMiddleware
-from routers import audit_trail_router, auth_router, clerk_webhook_router, health_router
+from routers import (
+    audit_trail_router,
+    auth_router,
+    clerk_webhook_router,
+    health_router,
+    users_router,
+)
 
 settings = get_settings()
 
@@ -25,3 +31,4 @@ app.include_router(health_router.router)
 app.include_router(auth_router.router)
 app.include_router(clerk_webhook_router.router)
 app.include_router(audit_trail_router.router)
+app.include_router(users_router.router)
