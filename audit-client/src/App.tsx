@@ -7,6 +7,7 @@ import { MeProvider } from "./contexts/MeContext";
 import AuditTrailScreen from "./screens/AuditTrailScreen";
 import ClientDetailScreen from "./screens/ClientDetailScreen";
 import ClientsScreen from "./screens/ClientsScreen";
+import EngagementDetailScreen from "./screens/EngagementDetailScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
 import HomeScreen from "./screens/HomeScreen";
 import SignInScreen from "./screens/SignInScreen";
@@ -27,6 +28,10 @@ export default function App() {
                 <Route path="clients" element={<ClientsScreen />} />
                 <Route path="clients/:clientId" element={<ClientDetailScreen />} />
                 <Route path="engagements" element={<EngagementsScreen />} />
+                <Route
+                  path="engagements/:engagementId"
+                  element={<EngagementDetailScreen />}
+                />
                 <Route
                   path="audit-trail"
                   element={
