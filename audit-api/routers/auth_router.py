@@ -1,0 +1,13 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from middleware.auth import get_current_user
+from models.auth_models import AuthenticatedUser
+
+router = APIRouter(prefix="/api", tags=["auth"])
+
+
+@router.get("/me", response_model=AuthenticatedUser)
+async def me(user: Annotated[AuthenticatedUser, Depends(get_current_user)]) -> AuthenticatedUser:
+    return user
