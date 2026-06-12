@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useApi } from "../hooks/useApi";
 import type { HealthResponse } from "../types/health";
+import type { MyProcedure } from "../types/planning";
+import { fsAreaLabel } from "../types/trialBalance";
 
 export default function HomeScreen() {
   const api = useApi();
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [procedures, setProcedures] = useState<MyProcedure[]>([]);
+  const [proceduresLoaded, setProceduresLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -13,12 +18,65 @@ export default function HomeScreen() {
       .get<HealthResponse>("/api/health")
       .then(setHealth)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    api
+      .get<MyProcedure[]>("/api/my-procedures")
+      .then(setProcedures)
+      .catch(() => setProcedures([]))
+      .finally(() => setProceduresLoaded(true));
   }, [api]);
 
   return (
     <div>
       <h2 className="text-xl font-semibold text-slate-800">Dashboard</h2>
-      <h3 className="mb-2 mt-4 text-sm font-medium text-slate-500">API status</h3>
+
+      <h3 className="mb-2 mt-6 text-sm font-medium text-slate-500">My assigned procedures</h3>
+      {proceduresLoaded && procedures.length === 0 && (
+        <p className="text-sm text-slate-500">Nothing assigned to you right now.</p>
+      )}
+      {procedures.length > 0 && (
+        <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="px-4 py-2 font-medium">Engagement</th>
+                <th className="px-4 py-2 font-medium">FS area</th>
+                <th className="px-4 py-2 font-medium">Procedure</th>
+                <th className="px-4 py-2 font-medium">Due</th>
+                <th className="px-4 py-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {procedures.map((procedure) => (
+                <tr key={procedure.id} className="border-b border-slate-100">
+                  <td className="px-4 py-2">
+                    <Link
+                      to={`/engagements/${procedure.engagement_id}/program`}
+                      className="text-slate-800 underline"
+                    >
+                      {procedure.client_name ?? "Engagement"} FY{procedure.fiscal_year}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-slate-600">{fsAreaLabel(procedure.fs_area)}</td>
+                  <td className="px-4 py-2 text-slate-800">{procedure.title}</td>
+                  <td className="px-4 py-2 text-slate-600">
+                    {procedure.due_date ?? "—"}
+                    {procedure.overdue && (
+                      <span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                        overdue
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 capitalize text-slate-600">
+                    {procedure.status.replaceAll("_", " ")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h3 className="mb-2 mt-8 text-sm font-medium text-slate-500">API status</h3>
       {health && (
         <p className="text-slate-800">
           API: <span className="font-semibold text-green-700">{health.status}</span> · Database:{" "}

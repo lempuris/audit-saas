@@ -4,12 +4,14 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import RequireRole from "./components/RequireRole";
 import { MeProvider } from "./contexts/MeContext";
+import AuditProgramScreen from "./screens/AuditProgramScreen";
 import AuditTrailScreen from "./screens/AuditTrailScreen";
 import ClientDetailScreen from "./screens/ClientDetailScreen";
 import ClientsScreen from "./screens/ClientsScreen";
 import EngagementDetailScreen from "./screens/EngagementDetailScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
 import HomeScreen from "./screens/HomeScreen";
+import LeadSchedulesScreen from "./screens/LeadSchedulesScreen";
 import MaterialityScreen from "./screens/MaterialityScreen";
 import RisksScreen from "./screens/RisksScreen";
 import SignInScreen from "./screens/SignInScreen";
@@ -46,6 +48,14 @@ export default function App() {
                 <Route
                   path="engagements/:engagementId/risks"
                   element={<RisksScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/program"
+                  element={<AuditProgramScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/lead-schedules"
+                  element={<LeadSchedulesScreen />}
                 />
                 <Route
                   path="audit-trail"
