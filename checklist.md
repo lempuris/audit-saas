@@ -245,22 +245,33 @@ appears in the audit trail; an engagement can be created end-to-end in the UI.
 - [x] Planning dashboard: engagement progress, my assigned procedures
       (API PR #29, screens PR #32)
 
-> **Phase 2 status (2026-06-12, built — PRs open):** All six features are
-> implemented as a stacked chain of draft PRs to be merged **in order**:
+> **Phase 2 status (2026-06-12, merged & deployed):** All six features are
+> in `master`, merged in stack order on 2026-06-12: #24/#25 TB import API →
 > #26 materiality API → #27 risks API → #28 audit programs API (incl. the
 > 27-procedure ISA template library + seed endpoint) → #29 lead schedules +
 > planning dashboard API → #30 TB screen (column-mapping wizard, FS-area
 > regrouping, PY comparison) → #31 materiality + risk screens → #32 program
-> / lead schedules / dashboard screens. (#24/#25, already merged, delivered
-> the TB import API.) Migrations 0006–0008 (materiality_assessments, risks,
-> procedure_templates + engagement_procedures + risk_procedure_links) apply
-> on deploy. Backend: pytest 138 passed, ruff clean. Frontend: vitest 56
+> / lead schedules / dashboard screens → #33 checklist. All `ci-cd-api` and
+> `ci-cd-client` deploys green; the ECS task was verified (via ECR digest)
+> to run the image containing the full backend, and its startup applied
+> migrations 0006–0008 (materiality_assessments, risks, procedure_templates
+> + engagement_procedures + risk_procedure_links). `/api/health` ok in
+> production. Backend: pytest 138 passed, ruff clean. Frontend: vitest 56
 > passed, ESLint/tsc/build clean.
 >
-> Remaining for Phase 2 acceptance (after merge + deploy): run the demo
-> engagement end-to-end on the deployed app — import a TB, approve/lock
-> materiality, document risks and link them to seeded program procedures,
-> and check lead-schedule totals against the imported TB.
+> No manual seeding step is needed: the program screen's "Load standard
+> ISA program" button seeds the firm template library (idempotent) and
+> bulk-adds it to the engagement in one go.
+>
+> Remaining for Phase 2 acceptance — run the demo engagement end-to-end on
+> the deployed app (needs a signed-in user with roles assigned, see Phase 1
+> remaining items):
+>
+> 1. Import a TB through the column-mapping wizard; refine FS-area grouping.
+> 2. Save a materiality assessment; approve and lock it as Partner/Admin.
+> 3. Document risks; load the standard ISA program and link procedures to
+>    the risks.
+> 4. Check lead-schedule totals against the imported TB.
 
 **Acceptance:** A demo engagement has an imported TB, locked materiality, documented
 risks linked to programs, and lead schedules with correct totals.
