@@ -169,6 +169,18 @@ export default function EngagementDetailScreen() {
         >
           Trial balance
         </Link>
+        <Link
+          to={`/engagements/${engagementId}/materiality`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Materiality
+        </Link>
+        <Link
+          to={`/engagements/${engagementId}/risks`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Risks
+        </Link>
       </div>
 
       <h3 className="mt-8 text-sm font-semibold text-slate-700">
