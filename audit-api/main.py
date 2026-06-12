@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.settings import get_settings
 from middleware.auth import ClerkAuthMiddleware
 from routers import (
+    audit_programs_router,
     audit_trail_router,
     auth_router,
     clerk_webhook_router,
@@ -42,3 +43,5 @@ app.include_router(engagements_router.router)
 app.include_router(trial_balance_router.router)
 app.include_router(materiality_router.router)
 app.include_router(risks_router.router)
+app.include_router(audit_programs_router.templates_router)
+app.include_router(audit_programs_router.router)

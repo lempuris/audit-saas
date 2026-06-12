@@ -1,10 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -182,6 +183,67 @@ class Risk(BaseModel):
     is_significant: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     planned_response: Mapped[str | None] = mapped_column(String, nullable=True)
     created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
+class ProcedureTemplate(BaseModel):
+    """Firm-wide library of ISA-referenced audit procedures per FS area,
+    seeded from the built-in library and extendable by the firm. Engagement
+    procedures copy a template's fields so later template edits never change
+    an engagement's program."""
+
+    __tablename__ = "procedure_templates"
+    __table_args__ = (UniqueConstraint("fs_area", "title"),)
+
+    fs_area: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    isa_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Assertion names addressed (models/risks_models.Assertion).
+    assertions: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class EngagementProcedure(BaseModel):
+    """A procedure on an engagement's audit program: copied from a template
+    (template_id keeps provenance) or written ad hoc, then tailored, assigned
+    with a due date, and tracked by status."""
+
+    __tablename__ = "engagement_procedures"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("procedure_templates.id"), nullable=True
+    )
+    fs_area: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    isa_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    assertions: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    assigned_to: Mapped[str | None] = mapped_column(String, nullable=True, index=True)  # Clerk id
+    status: Mapped[str] = mapped_column(String, nullable=False, default="not_started", index=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
+class RiskProcedureLink(BaseModel):
+    """Links a risk to a procedure that responds to it (ISA 330). Cascades
+    away with either side."""
+
+    __tablename__ = "risk_procedure_links"
+    __table_args__ = (UniqueConstraint("risk_id", "procedure_id"),)
+
+    risk_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("risks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    procedure_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("engagement_procedures.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
 
 class AuditTrailEntry(BaseModel):
