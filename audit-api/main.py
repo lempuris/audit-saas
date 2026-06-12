@@ -12,6 +12,7 @@ from routers import (
     engagements_router,
     health_router,
     materiality_router,
+    planning_router,
     risks_router,
     trial_balance_router,
     users_router,
@@ -45,3 +46,5 @@ app.include_router(materiality_router.router)
 app.include_router(risks_router.router)
 app.include_router(audit_programs_router.templates_router)
 app.include_router(audit_programs_router.router)
+app.include_router(planning_router.router)
+app.include_router(planning_router.me_router)
