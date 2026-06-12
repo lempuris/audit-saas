@@ -11,6 +11,7 @@ import EngagementDetailScreen from "./screens/EngagementDetailScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
 import HomeScreen from "./screens/HomeScreen";
 import SignInScreen from "./screens/SignInScreen";
+import TrialBalanceScreen from "./screens/TrialBalanceScreen";
 import UsersScreen from "./screens/UsersScreen";
 
 export default function App() {
@@ -31,6 +32,10 @@ export default function App() {
                 <Route
                   path="engagements/:engagementId"
                   element={<EngagementDetailScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/trial-balance"
+                  element={<TrialBalanceScreen />}
                 />
                 <Route
                   path="audit-trail"

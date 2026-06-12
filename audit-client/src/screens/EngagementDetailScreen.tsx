@@ -161,6 +161,16 @@ export default function EngagementDetailScreen() {
         </div>
       )}
 
+      <h3 className="mt-8 text-sm font-semibold text-slate-700">Planning</h3>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          to={`/engagements/${engagementId}/trial-balance`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Trial balance
+        </Link>
+      </div>
+
       <h3 className="mt-8 text-sm font-semibold text-slate-700">
         Team &amp; independence confirmations
       </h3>

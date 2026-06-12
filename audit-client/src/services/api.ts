@@ -19,7 +19,10 @@ export class ApiClient {
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const token = await this.getToken();
     const headers = new Headers(options.headers);
-    headers.set("Content-Type", "application/json");
+    // FormData bodies set their own multipart boundary — don't override it.
+    if (!(options.body instanceof FormData)) {
+      headers.set("Content-Type", "application/json");
+    }
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
@@ -43,6 +46,10 @@ export class ApiClient {
       method: "POST",
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+  }
+
+  postForm<T>(path: string, form: FormData): Promise<T> {
+    return this.request<T>(path, { method: "POST", body: form });
   }
 
   put<T>(path: string, body: unknown): Promise<T> {
