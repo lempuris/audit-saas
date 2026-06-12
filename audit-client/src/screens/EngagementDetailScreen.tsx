@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
 import type { ClientRecord } from "../types/clients";
+import type { PlanningSummary } from "../types/planning";
 import {
   NEXT_STATUSES,
   type EngagementDetail,
@@ -20,6 +21,7 @@ export default function EngagementDetailScreen() {
 
   const [engagement, setEngagement] = useState<EngagementDetail | null>(null);
   const [client, setClient] = useState<ClientRecord | null>(null);
+  const [planning, setPlanning] = useState<PlanningSummary | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -40,6 +42,10 @@ export default function EngagementDetailScreen() {
           .catch(() => setClient(null));
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    api
+      .get<PlanningSummary>(`/api/engagements/${engagementId}/planning-summary`)
+      .then((summary) => setPlanning(summary.trial_balance ? summary : null))
+      .catch(() => setPlanning(null));
   }, [api, engagementId]);
 
   useEffect(load, [load]);
@@ -181,7 +187,64 @@ export default function EngagementDetailScreen() {
         >
           Risks
         </Link>
+        <Link
+          to={`/engagements/${engagementId}/program`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Audit program
+        </Link>
+        <Link
+          to={`/engagements/${engagementId}/lead-schedules`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Lead schedules
+        </Link>
       </div>
+
+      {planning && (
+        <div className="mt-3 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500">Trial balance</p>
+            <p className="mt-1 text-sm font-medium text-slate-800">
+              {planning.trial_balance.imported
+                ? `${planning.trial_balance.line_count} lines`
+                : "Not imported"}
+            </p>
+            {planning.trial_balance.unmapped_count > 0 && (
+              <p className="text-xs text-amber-700">
+                {planning.trial_balance.unmapped_count} unmapped
+              </p>
+            )}
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500">Materiality</p>
+            <p className="mt-1 text-sm font-medium capitalize text-slate-800">
+              {planning.materiality?.status ?? "Not set"}
+            </p>
+            {planning.materiality && (
+              <p className="text-xs text-slate-500">
+                OM {planning.materiality.overall_materiality}
+              </p>
+            )}
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500">Risks</p>
+            <p className="mt-1 text-sm font-medium text-slate-800">{planning.risks.total}</p>
+            {planning.risks.significant > 0 && (
+              <p className="text-xs text-red-700">{planning.risks.significant} significant</p>
+            )}
+          </div>
+          <div className="rounded border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500">Procedures</p>
+            <p className="mt-1 text-sm font-medium text-slate-800">
+              {planning.procedures.by_status.completed ?? 0}/{planning.procedures.total} done
+            </p>
+            {planning.procedures.overdue > 0 && (
+              <p className="text-xs text-red-700">{planning.procedures.overdue} overdue</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <h3 className="mt-8 text-sm font-semibold text-slate-700">
         Team &amp; independence confirmations
