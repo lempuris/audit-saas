@@ -161,6 +161,29 @@ class MaterialityAssessment(BaseModel):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class Risk(BaseModel):
+    """An identified risk of material misstatement (ISA 315): entity-level or
+    assertion-level (tied to an FS area and assertions). The combined rating
+    is derived from inherent x control in risks_service and stored."""
+
+    __tablename__ = "risks"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    level: Mapped[str] = mapped_column(String, nullable=False)  # entity / assertion
+    fs_area: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    # Assertion names (models/risks_models.Assertion); empty for entity-level.
+    assertions: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    inherent_rating: Mapped[str] = mapped_column(String, nullable=False)  # low/medium/high
+    control_rating: Mapped[str] = mapped_column(String, nullable=False)
+    combined_rating: Mapped[str] = mapped_column(String, nullable=False)
+    is_significant: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    planned_response: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
