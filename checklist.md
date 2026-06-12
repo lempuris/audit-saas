@@ -228,16 +228,39 @@ appears in the audit trail; an engagement can be created end-to-end in the UI.
 
 **Goal:** Plan an audit per ISA: materiality, risk, programs, trial balance.
 
-- [ ] **Trial balance import** (XLSX/CSV): column mapping UI, validation, account
-      grouping into financial statement areas, prior-year comparison
-- [ ] **Materiality feature**: benchmark selection (revenue/assets/profit), overall +
+- [x] **Trial balance import** (XLSX/CSV): column mapping UI, validation, account
+      grouping into financial statement areas, prior-year comparison (API PR #24,
+      screen PR #30)
+- [x] **Materiality feature**: benchmark selection (revenue/assets/profit), overall +
       performance materiality + clearly-trivial threshold; partner approval and locking
-- [ ] **Risk assessment feature**: entity-level and assertion-level risks
+      (API PR #26, screen PR #31)
+- [x] **Risk assessment feature**: entity-level and assertion-level risks
       (inherent/control/combined), risks linked to planned responses/procedures
-- [ ] **Audit programs feature**: seedable ISA-referenced procedure templates per FS
+      (API PR #27, screen PR #31; risk↔procedure links in PR #28/#32)
+- [x] **Audit programs feature**: seedable ISA-referenced procedure templates per FS
       area; tailor per engagement; assign procedures with status and due dates
-- [ ] **Lead schedules** auto-generated per FS area from the imported trial balance
-- [ ] Planning dashboard: engagement progress, my assigned procedures
+      (API PR #28, screen PR #32)
+- [x] **Lead schedules** auto-generated per FS area from the imported trial balance
+      (API PR #29, screen PR #32)
+- [x] Planning dashboard: engagement progress, my assigned procedures
+      (API PR #29, screens PR #32)
+
+> **Phase 2 status (2026-06-12, built — PRs open):** All six features are
+> implemented as a stacked chain of draft PRs to be merged **in order**:
+> #26 materiality API → #27 risks API → #28 audit programs API (incl. the
+> 27-procedure ISA template library + seed endpoint) → #29 lead schedules +
+> planning dashboard API → #30 TB screen (column-mapping wizard, FS-area
+> regrouping, PY comparison) → #31 materiality + risk screens → #32 program
+> / lead schedules / dashboard screens. (#24/#25, already merged, delivered
+> the TB import API.) Migrations 0006–0008 (materiality_assessments, risks,
+> procedure_templates + engagement_procedures + risk_procedure_links) apply
+> on deploy. Backend: pytest 138 passed, ruff clean. Frontend: vitest 56
+> passed, ESLint/tsc/build clean.
+>
+> Remaining for Phase 2 acceptance (after merge + deploy): run the demo
+> engagement end-to-end on the deployed app — import a TB, approve/lock
+> materiality, document risks and link them to seeded program procedures,
+> and check lead-schedule totals against the imported TB.
 
 **Acceptance:** A demo engagement has an imported TB, locked materiality, documented
 risks linked to programs, and lead schedules with correct totals.
