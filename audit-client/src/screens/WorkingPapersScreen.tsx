@@ -310,7 +310,7 @@ export default function WorkingPapersScreen() {
                     <p className="mt-0.5 text-xs text-slate-400">
                       v{wp.current_version}
                       {wp.status === "prepared" && wp.prepared_by
-                        ? ` · prepared by ${wp.prepared_by}`
+                        ? ` · prepared by ${wp.prepared_by_name ?? wp.prepared_by}`
                         : ""}
                     </p>
                   </div>
@@ -471,7 +471,8 @@ export default function WorkingPapersScreen() {
                         {versions.map((v) => (
                           <li key={v.id}>
                             v{v.version_no} · {v.status} · {v.title} ·{" "}
-                            {new Date(v.created_at).toLocaleString()} · {v.edited_by}
+                            {new Date(v.created_at).toLocaleString()} ·{" "}
+                            {v.edited_by_name ?? v.edited_by}
                           </li>
                         ))}
                       </ul>

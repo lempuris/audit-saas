@@ -60,6 +60,8 @@ class WorkingPaperRecord(BaseModel):
     updated_at: datetime
     # Highest version_no recorded; set by the service.
     current_version: int = 0
+    # Resolved display name for prepared_by (Clerk id otherwise); set by service.
+    prepared_by_name: str | None = None
 
 
 class WorkingPaperVersionRecord(BaseModel):
@@ -77,3 +79,5 @@ class WorkingPaperVersionRecord(BaseModel):
     status: str
     edited_by: str
     created_at: datetime
+    # Resolved display name for edited_by (Clerk id otherwise); set by service.
+    edited_by_name: str | None = None

@@ -19,6 +19,7 @@ export interface WorkingPaperRecord {
   created_at: string;
   updated_at: string;
   current_version: number;
+  prepared_by_name: string | null;
 }
 
 export interface WorkingPaperVersionRecord {
@@ -34,4 +35,5 @@ export interface WorkingPaperVersionRecord {
   status: string;
   edited_by: string;
   created_at: string;
+  edited_by_name: string | null;
 }
