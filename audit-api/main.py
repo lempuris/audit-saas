@@ -9,6 +9,7 @@ from routers import (
     auth_router,
     clerk_webhook_router,
     clients_router,
+    documents_router,
     engagements_router,
     health_router,
     materiality_router,
@@ -50,3 +51,4 @@ app.include_router(audit_programs_router.router)
 app.include_router(planning_router.router)
 app.include_router(planning_router.me_router)
 app.include_router(working_papers_router.router)
+app.include_router(documents_router.router)

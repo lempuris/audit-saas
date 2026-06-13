@@ -300,6 +300,32 @@ class WorkingPaperVersion(BaseModel):
     edited_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
 
 
+class Document(BaseModel):
+    """Evidence stored in S3, uploaded via a presigned URL. The row is created
+    in 'pending' state when the upload URL is issued and flips to 'available'
+    once the client confirms the object landed (size + S3 version id filled in
+    from a HEAD). Optionally attached to the working paper it evidences."""
+
+    __tablename__ = "documents"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    working_paper_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("working_papers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    content_type: Mapped[str] = mapped_column(String, nullable=False)
+    size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    s3_key: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    s3_version_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending", index=True)
+    uploaded_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
