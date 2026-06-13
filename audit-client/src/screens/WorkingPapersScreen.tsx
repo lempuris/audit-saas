@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Link, useParams } from "react-router-dom";
 
 import CrossReferencePanel from "../components/CrossReferencePanel";
+import ReviewNotesPanel from "../components/ReviewNotesPanel";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
 import type { CrossRefCandidate } from "../types/crossReferences";
 import type { DocumentRecord } from "../types/documents";
+import type { EngagementDetail, TeamMemberRecord } from "../types/engagements";
 import {
   FS_AREAS,
   fsAreaLabel,
@@ -67,8 +69,10 @@ export default function WorkingPapersScreen() {
   const [versionsFor, setVersionsFor] = useState<string | null>(null);
   const [versions, setVersions] = useState<WorkingPaperVersionRecord[]>([]);
   const [linksFor, setLinksFor] = useState<string | null>(null);
+  const [notesFor, setNotesFor] = useState<string | null>(null);
   const [tbLines, setTbLines] = useState<TrialBalanceLineRecord[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [team, setTeam] = useState<TeamMemberRecord[]>([]);
 
   const base = `/api/engagements/${engagementId}/working-papers`;
 
@@ -91,6 +95,10 @@ export default function WorkingPapersScreen() {
       .get<DocumentRecord[]>(`/api/engagements/${engagementId}/documents`)
       .then(setDocuments)
       .catch(() => setDocuments([]));
+    api
+      .get<EngagementDetail>(`/api/engagements/${engagementId}`)
+      .then((detail) => setTeam(detail.team))
+      .catch(() => setTeam([]));
   }, [api, base, engagementId]);
 
   useEffect(load, [load]);
@@ -333,6 +341,13 @@ export default function WorkingPapersScreen() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setNotesFor((previous) => (previous === wp.id ? null : wp.id))}
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Notes
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => toggleVersions(wp)}
                       className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                     >
@@ -435,6 +450,14 @@ export default function WorkingPapersScreen() {
                     sourceId={wp.id}
                     candidates={candidates}
                     canWrite={canWrite}
+                  />
+                )}
+
+                {notesFor === wp.id && (
+                  <ReviewNotesPanel
+                    engagementId={engagementId ?? ""}
+                    workingPaperId={wp.id}
+                    team={team}
                   />
                 )}
 
