@@ -17,6 +17,7 @@ import RisksScreen from "./screens/RisksScreen";
 import SignInScreen from "./screens/SignInScreen";
 import TrialBalanceScreen from "./screens/TrialBalanceScreen";
 import UsersScreen from "./screens/UsersScreen";
+import WorkingPapersScreen from "./screens/WorkingPapersScreen";
 
 export default function App() {
   return (
@@ -56,6 +57,10 @@ export default function App() {
                 <Route
                   path="engagements/:engagementId/lead-schedules"
                   element={<LeadSchedulesScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/working-papers"
+                  element={<WorkingPapersScreen />}
                 />
                 <Route
                   path="audit-trail"
