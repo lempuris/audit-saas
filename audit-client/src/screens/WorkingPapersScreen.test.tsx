@@ -69,6 +69,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   apiMock.get.mockImplementation((path: string) => {
     if (path.endsWith("/versions")) return Promise.resolve([version]);
+    if (path.includes("/trial-balance")) return Promise.resolve({ lines: [] });
+    if (path.includes("/documents")) return Promise.resolve([]);
+    if (path.includes("/cross-references")) return Promise.resolve([]);
     return Promise.resolve([paper]);
   });
   apiMock.post.mockResolvedValue(paper);

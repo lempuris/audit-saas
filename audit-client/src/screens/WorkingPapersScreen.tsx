@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import CrossReferencePanel from "../components/CrossReferencePanel";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
-import { FS_AREAS, fsAreaLabel } from "../types/trialBalance";
+import type { CrossRefCandidate } from "../types/crossReferences";
+import type { DocumentRecord } from "../types/documents";
+import {
+  FS_AREAS,
+  fsAreaLabel,
+  type TrialBalanceDetail,
+  type TrialBalanceLineRecord,
+} from "../types/trialBalance";
 import {
   WORKING_PAPER_STATUSES,
   type WorkingPaperRecord,
@@ -58,6 +66,9 @@ export default function WorkingPapersScreen() {
   const [edit, setEdit] = useState<EditDraft | null>(null);
   const [versionsFor, setVersionsFor] = useState<string | null>(null);
   const [versions, setVersions] = useState<WorkingPaperVersionRecord[]>([]);
+  const [linksFor, setLinksFor] = useState<string | null>(null);
+  const [tbLines, setTbLines] = useState<TrialBalanceLineRecord[]>([]);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
 
   const base = `/api/engagements/${engagementId}/working-papers`;
 
@@ -71,6 +82,15 @@ export default function WorkingPapersScreen() {
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoaded(true));
+    // Candidate cross-reference targets across the engagement.
+    api
+      .get<TrialBalanceDetail>(`/api/engagements/${engagementId}/trial-balance`)
+      .then((tb) => setTbLines(tb.lines))
+      .catch(() => setTbLines([]));
+    api
+      .get<DocumentRecord[]>(`/api/engagements/${engagementId}/documents`)
+      .then(setDocuments)
+      .catch(() => setDocuments([]));
   }, [api, base, engagementId]);
 
   useEffect(load, [load]);
@@ -141,6 +161,23 @@ export default function WorkingPapersScreen() {
       .then(setVersions)
       .catch(() => setVersions([]));
   }
+
+  const candidates = useMemo<CrossRefCandidate[]>(
+    () => [
+      ...papers.map((p) => ({
+        type: "working_paper" as const,
+        id: p.id,
+        label: `${p.index_ref} ${p.title}`,
+      })),
+      ...tbLines.map((l) => ({
+        type: "trial_balance_line" as const,
+        id: l.id,
+        label: `${l.account_code} ${l.account_name}`,
+      })),
+      ...documents.map((d) => ({ type: "document" as const, id: d.id, label: d.filename })),
+    ],
+    [papers, tbLines, documents],
+  );
 
   const byArea = useMemo(() => {
     const groups = new Map<string, WorkingPaperRecord[]>();
@@ -289,6 +326,13 @@ export default function WorkingPapersScreen() {
                     )}
                     <button
                       type="button"
+                      onClick={() => setLinksFor((previous) => (previous === wp.id ? null : wp.id))}
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
+                    >
+                      Links
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => toggleVersions(wp)}
                       className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"
                     >
@@ -382,6 +426,16 @@ export default function WorkingPapersScreen() {
                       </button>
                     )}
                   </div>
+                )}
+
+                {linksFor === wp.id && (
+                  <CrossReferencePanel
+                    engagementId={engagementId ?? ""}
+                    sourceType="working_paper"
+                    sourceId={wp.id}
+                    candidates={candidates}
+                    canWrite={canWrite}
+                  />
                 )}
 
                 {versionsFor === wp.id && (
