@@ -4,6 +4,11 @@ import { Link, useParams } from "react-router-dom";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
 import { ApiError } from "../services/api";
+import type {
+  SeedResult,
+  TickMarkApplicationRecord,
+  TickMarkRecord,
+} from "../types/tickMarks";
 import {
   FS_AREAS,
   fsAreaLabel,
@@ -53,7 +58,21 @@ export default function TrialBalanceScreen() {
   // Regrouping edits not yet saved: line id -> new FS area ("" = unmapped).
   const [pendingAreas, setPendingAreas] = useState<Record<string, string>>({});
 
+  // Tick marks: firm library + this engagement's applications.
+  const [tickMarks, setTickMarks] = useState<TickMarkRecord[]>([]);
+  const [applications, setApplications] = useState<TickMarkApplicationRecord[]>([]);
+
   const base = `/api/engagements/${engagementId}/trial-balance`;
+  const tickBase = `/api/engagements/${engagementId}/tick-mark-applications`;
+
+  const loadTickMarks = useCallback(() => {
+    if (!engagementId) return;
+    api.get<TickMarkRecord[]>("/api/tick-marks").then(setTickMarks).catch(() => setTickMarks([]));
+    api
+      .get<TickMarkApplicationRecord[]>(`${tickBase}?target_type=trial_balance_line`)
+      .then(setApplications)
+      .catch(() => setApplications([]));
+  }, [api, tickBase, engagementId]);
 
   const load = useCallback(() => {
     if (!engagementId) return;
@@ -76,9 +95,45 @@ export default function TrialBalanceScreen() {
   }, [api, base, engagementId]);
 
   useEffect(load, [load]);
+  useEffect(loadTickMarks, [loadTickMarks]);
 
   function fail(err: unknown) {
     setError(err instanceof Error ? err.message : String(err));
+  }
+
+  async function seedTickMarks() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post<SeedResult>("/api/tick-marks/seed");
+      loadTickMarks();
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyTickMark(lineId: string, tickMarkId: string) {
+    try {
+      await api.post(tickBase, {
+        tick_mark_id: tickMarkId,
+        target_type: "trial_balance_line",
+        target_id: lineId,
+      });
+      loadTickMarks();
+    } catch (err) {
+      fail(err);
+    }
+  }
+
+  async function removeApplication(applicationId: string) {
+    try {
+      await api.delete(`${tickBase}/${applicationId}`);
+      loadTickMarks();
+    } catch (err) {
+      fail(err);
+    }
   }
 
   async function previewFile(selected: File) {
@@ -165,6 +220,16 @@ export default function TrialBalanceScreen() {
     () => (tb?.lines ?? []).some((line) => line.prior_year_balance !== null),
     [tb],
   );
+
+  const applicationsByLine = useMemo(() => {
+    const map = new Map<string, TickMarkApplicationRecord[]>();
+    for (const application of applications) {
+      const group = map.get(application.target_id) ?? [];
+      group.push(application);
+      map.set(application.target_id, group);
+    }
+    return map;
+  }, [applications]);
 
   if (!loaded) {
     return <p className="text-slate-500">Loading…</p>;
@@ -435,6 +500,7 @@ export default function TrialBalanceScreen() {
                   <th className="px-4 py-2 text-right font-medium">Balance</th>
                   {hasPrior && <th className="px-4 py-2 text-right font-medium">Prior year</th>}
                   <th className="px-4 py-2 font-medium">FS area</th>
+                  <th className="px-4 py-2 font-medium">Tick marks</th>
                 </tr>
               </thead>
               <tbody>
@@ -471,10 +537,75 @@ export default function TrialBalanceScreen() {
                         <span className="text-slate-600">{fsAreaLabel(line.fs_area)}</span>
                       )}
                     </td>
+                    <td className="px-4 py-2">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {(applicationsByLine.get(line.id) ?? []).map((application) => (
+                          <button
+                            key={application.id}
+                            type="button"
+                            disabled={!canWrite}
+                            title={
+                              canWrite
+                                ? `${application.meaning} — click to remove`
+                                : application.meaning
+                            }
+                            onClick={() => void removeApplication(application.id)}
+                            className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-xs font-semibold text-slate-700 enabled:hover:border-red-300 enabled:hover:text-red-600"
+                          >
+                            {application.symbol}
+                          </button>
+                        ))}
+                        {canWrite && tickMarks.length > 0 && (
+                          <select
+                            aria-label={`Apply tick mark to ${line.account_code}`}
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) void applyTickMark(line.id, e.target.value);
+                            }}
+                            className="rounded border border-slate-300 bg-white px-1 py-0.5 text-xs text-slate-500"
+                          >
+                            <option value="">+</option>
+                            {tickMarks.map((mark) => (
+                              <option key={mark.id} value={mark.id}>
+                                {mark.symbol} — {mark.meaning}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700">Tick-mark legend</h3>
+              {tickMarks.length === 0 ? (
+                <p className="mt-1 text-xs text-slate-400">No tick marks in the firm library.</p>
+              ) : (
+                <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
+                  {tickMarks.map((mark) => (
+                    <li key={mark.id}>
+                      <span className="font-semibold text-slate-800">{mark.symbol}</span> —{" "}
+                      {mark.meaning}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {canWrite && tickMarks.length === 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void seedTickMarks()}
+                className="shrink-0 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Load standard tick marks
+              </button>
+            )}
           </div>
         </>
       )}
