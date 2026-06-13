@@ -72,6 +72,8 @@ beforeEach(() => {
     if (path.includes("/trial-balance")) return Promise.resolve({ lines: [] });
     if (path.includes("/documents")) return Promise.resolve([]);
     if (path.includes("/cross-references")) return Promise.resolve([]);
+    if (path.includes("/review-notes")) return Promise.resolve([]);
+    if (path === `/api/engagements/${engagementId}`) return Promise.resolve({ team: [] });
     return Promise.resolve([paper]);
   });
   apiMock.post.mockResolvedValue(paper);

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
 import type { HealthResponse } from "../types/health";
 import type { MyProcedure } from "../types/planning";
+import type { ReviewNoteRecord } from "../types/reviewNotes";
 import { fsAreaLabel } from "../types/trialBalance";
 
 export default function HomeScreen() {
@@ -11,6 +12,8 @@ export default function HomeScreen() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [procedures, setProcedures] = useState<MyProcedure[]>([]);
   const [proceduresLoaded, setProceduresLoaded] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState<ReviewNoteRecord[]>([]);
+  const [reviewNotesLoaded, setReviewNotesLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,6 +26,11 @@ export default function HomeScreen() {
       .then(setProcedures)
       .catch(() => setProcedures([]))
       .finally(() => setProceduresLoaded(true));
+    api
+      .get<ReviewNoteRecord[]>("/api/me/review-notes")
+      .then(setReviewNotes)
+      .catch(() => setReviewNotes([]))
+      .finally(() => setReviewNotesLoaded(true));
   }, [api]);
 
   return (
@@ -74,6 +82,44 @@ export default function HomeScreen() {
             </tbody>
           </table>
         </div>
+      )}
+
+      <h3 className="mb-2 mt-8 text-sm font-medium text-slate-500">My open review notes</h3>
+      {reviewNotesLoaded && reviewNotes.length === 0 && (
+        <p className="text-sm text-slate-500">No open review notes assigned to you.</p>
+      )}
+      {reviewNotes.length > 0 && (
+        <ul className="space-y-2">
+          {reviewNotes.map((note) => (
+            <li
+              key={note.id}
+              className="rounded border border-slate-200 bg-white p-3 text-sm"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-800">{note.text}</span>
+                <span
+                  className={
+                    note.status === "responded"
+                      ? "rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                      : "rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800"
+                  }
+                >
+                  {note.status}
+                </span>
+              </div>
+              <Link
+                to={
+                  note.working_paper_id
+                    ? `/engagements/${note.engagement_id}/working-papers`
+                    : `/engagements/${note.engagement_id}`
+                }
+                className="mt-1 inline-block text-xs text-slate-500 underline"
+              >
+                Go to engagement
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
 
       <h3 className="mb-2 mt-8 text-sm font-medium text-slate-500">API status</h3>
