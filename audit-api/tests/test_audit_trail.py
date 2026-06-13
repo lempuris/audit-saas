@@ -1,4 +1,6 @@
 import time
+import uuid
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -8,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from httpx import ASGITransport, AsyncClient
 
 import middleware.auth as auth_middleware
+from database.models import AuditTrailEntry, User
 from database.session import get_db
 from main import app
 from middleware.auth import ClerkTokenVerifier
@@ -86,6 +89,63 @@ def test_record_stages_row_without_commit() -> None:
     assert entry.actor_clerk_user_id == "user_1"
     assert entry.before == {"name": "Old"}
     assert entry.after == {"name": "New"}
+
+
+@pytest.mark.unit
+async def test_list_entries_resolves_actor_names() -> None:
+    def make_entry(actor: str, action: str) -> AuditTrailEntry:
+        return AuditTrailEntry(
+            id=uuid.uuid4(),
+            created_at=datetime.now(UTC),
+            actor_clerk_user_id=actor,
+            action=action,
+            entity_type="client",
+            entity_id="c1",
+            before=None,
+            after=None,
+        )
+
+    by_user = make_entry("user_abc", "update")
+    by_webhook = make_entry(audit_trail_service.SYSTEM_ACTOR, "create")
+    user = User(
+        id=uuid.uuid4(),
+        created_at=datetime.now(UTC),
+        clerk_user_id="user_abc",
+        email="asha@firm.example",
+        first_name="Asha",
+        last_name="Mushi",
+        role="auditor",
+        is_active=True,
+    )
+
+    class FakeScalarResult:
+        def __init__(self, rows: list[Any]) -> None:
+            self._rows = rows
+
+        def all(self) -> list[Any]:
+            return self._rows
+
+        def __iter__(self) -> Any:
+            return iter(self._rows)
+
+    class FakeSession:
+        def __init__(self) -> None:
+            # list_entries calls scalars() first for the rows, then for the users.
+            self._results = [[by_user, by_webhook], [user]]
+
+        async def scalar(self, _query: Any) -> int:
+            return 2
+
+        async def scalars(self, _query: Any) -> FakeScalarResult:
+            return FakeScalarResult(self._results.pop(0))
+
+    page = await audit_trail_service.list_entries(FakeSession())  # type: ignore[arg-type]
+    items = {item.action: item for item in page.items}
+    assert items["update"].actor_name == "Asha Mushi"
+    assert items["update"].actor_email == "asha@firm.example"
+    # The webhook actor has no user row, so it stays unresolved (raw id in the UI).
+    assert items["create"].actor_name is None
+    assert items["create"].actor_email is None
 
 
 @pytest.mark.unit

@@ -8,8 +8,9 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import AuditTrailEntry
+from database.models import AuditTrailEntry, User
 from models.audit_trail_models import AuditTrailPage, AuditTrailRecord
+from utils.naming import display_name
 
 # Actor recorded for rows written by webhook sync rather than a request.
 SYSTEM_ACTOR = "system:clerk-webhook"
@@ -56,12 +57,25 @@ async def list_entries(
         query = query.where(AuditTrailEntry.actor_clerk_user_id == actor)
 
     total = await session.scalar(select(func.count()).select_from(query.subquery()))
-    rows = await session.scalars(
-        query.order_by(AuditTrailEntry.created_at.desc()).limit(limit).offset(offset)
+    rows = list(
+        await session.scalars(
+            query.order_by(AuditTrailEntry.created_at.desc()).limit(limit).offset(offset)
+        )
     )
-    return AuditTrailPage(
-        total=total or 0,
-        limit=limit,
-        offset=offset,
-        items=[AuditTrailRecord.model_validate(row) for row in rows],
-    )
+
+    # Resolve actor ids to names/emails so the viewer shows people, not opaque
+    # Clerk ids. System actors (the webhook) have no user row and stay raw.
+    actor_ids = {row.actor_clerk_user_id for row in rows}
+    users = (await session.scalars(select(User).where(User.clerk_user_id.in_(actor_ids)))).all()
+    by_id = {user.clerk_user_id: user for user in users}
+
+    items = []
+    for row in rows:
+        record = AuditTrailRecord.model_validate(row)
+        user = by_id.get(row.actor_clerk_user_id)
+        if user is not None:
+            record.actor_name = display_name(user.first_name, user.last_name, user.email)
+            record.actor_email = user.email
+        items.append(record)
+
+    return AuditTrailPage(total=total or 0, limit=limit, offset=offset, items=items)

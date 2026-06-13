@@ -93,8 +93,19 @@ export default function AuditTrailScreen() {
                 <td className="whitespace-nowrap px-4 py-2 text-slate-600">
                   {new Date(entry.created_at).toLocaleString()}
                 </td>
-                <td className="px-4 py-2 font-mono text-xs text-slate-600">
-                  {entry.actor_clerk_user_id}
+                <td className="px-4 py-2 text-slate-700">
+                  {entry.actor_name ? (
+                    <>
+                      {entry.actor_name}
+                      <span className="block font-mono text-xs text-slate-400">
+                        {entry.actor_email ?? entry.actor_clerk_user_id}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="font-mono text-xs text-slate-600">
+                      {entry.actor_clerk_user_id}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2">
                   <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">

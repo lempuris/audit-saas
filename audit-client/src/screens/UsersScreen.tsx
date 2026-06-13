@@ -13,6 +13,12 @@ export default function UsersScreen() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<Role>("auditor");
   const [notice, setNotice] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
+
+  // Deactivated/deleted users are kept (for audit authorship) but hidden by
+  // default so the list shows the active team. See firm "no direct Clerk" rule.
+  const inactiveCount = users?.filter((user) => !user.is_active).length ?? 0;
+  const visibleUsers = users?.filter((user) => showInactive || user.is_active) ?? null;
 
   const load = useCallback(() => {
     api
@@ -109,6 +115,17 @@ export default function UsersScreen() {
       {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
       {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
 
+      {inactiveCount > 0 && (
+        <label className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+          />
+          Show inactive ({inactiveCount})
+        </label>
+      )}
+
       <div className="mt-4 overflow-x-auto rounded border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead>
@@ -121,11 +138,9 @@ export default function UsersScreen() {
             </tr>
           </thead>
           <tbody>
-            {users?.map((user) => (
+            {visibleUsers?.map((user) => (
               <tr key={user.id} className="border-b border-slate-100">
-                <td className="px-4 py-2 text-slate-800">
-                  {[user.first_name, user.last_name].filter(Boolean).join(" ") || "—"}
-                </td>
+                <td className="px-4 py-2 text-slate-800">{user.display_name}</td>
                 <td className="px-4 py-2 text-slate-600">{user.email ?? "—"}</td>
                 <td className="px-4 py-2">
                   <select
@@ -166,10 +181,12 @@ export default function UsersScreen() {
                 </td>
               </tr>
             ))}
-            {users && users.length === 0 && (
+            {visibleUsers && visibleUsers.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
-                  No users yet — invitations appear here once accepted.
+                  {users && users.length > 0
+                    ? "No active users — tick “Show inactive” to see deactivated accounts."
+                    : "No users yet — invitations appear here once accepted."}
                 </td>
               </tr>
             )}

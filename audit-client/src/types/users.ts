@@ -6,6 +6,8 @@ export interface UserRecord {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  /** Server-computed: full name → email local-part → Clerk id. Never blank. */
+  display_name: string;
   role: Role | null;
   is_active: boolean;
   created_at: string;
