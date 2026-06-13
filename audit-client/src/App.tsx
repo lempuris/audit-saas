@@ -15,6 +15,7 @@ import HomeScreen from "./screens/HomeScreen";
 import LeadSchedulesScreen from "./screens/LeadSchedulesScreen";
 import MaterialityScreen from "./screens/MaterialityScreen";
 import RisksScreen from "./screens/RisksScreen";
+import SamplingScreen from "./screens/SamplingScreen";
 import SignInScreen from "./screens/SignInScreen";
 import TrialBalanceScreen from "./screens/TrialBalanceScreen";
 import UsersScreen from "./screens/UsersScreen";
@@ -66,6 +67,10 @@ export default function App() {
                 <Route
                   path="engagements/:engagementId/documents"
                   element={<DocumentsScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/sampling"
+                  element={<SamplingScreen />}
                 />
                 <Route
                   path="audit-trail"

@@ -215,6 +215,12 @@ export default function EngagementDetailScreen() {
         >
           Documents
         </Link>
+        <Link
+          to={`/engagements/${engagementId}/sampling`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Sampling
+        </Link>
       </div>
 
       {planning && (
