@@ -326,6 +326,25 @@ class Document(BaseModel):
     uploaded_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
 
 
+class CrossReference(BaseModel):
+    """A directional link between two engagement artifacts — working paper,
+    trial-balance line, or document — so the file cross-references (ISA 230)
+    are explicit and clickable. The (source, target) pair is unique."""
+
+    __tablename__ = "cross_references"
+    __table_args__ = (UniqueConstraint("source_type", "source_id", "target_type", "target_id"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    source_type: Mapped[str] = mapped_column(String, nullable=False)
+    source_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    target_type: Mapped[str] = mapped_column(String, nullable=False)
+    target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    label: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
