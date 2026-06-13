@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     clerk_secret_key: str = ""
     clerk_jwks_url: str = ""
     clerk_webhook_secret: str = ""
+    # S3 bucket for evidence/documents; presigned URLs are signed with the
+    # task role on ECS (default cred chain) or an AWS profile locally.
+    documents_bucket: str = ""
+    aws_region: str = "eu-west-1"
+    # Lifetime of presigned upload/download URLs.
+    presigned_url_ttl_seconds: int = 900
 
     @property
     def cors_origin_list(self) -> list[str]:

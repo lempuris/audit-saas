@@ -56,6 +56,23 @@ resource "aws_s3_bucket_versioning" "documents" {
   }
 }
 
+# The SPA uploads/downloads evidence directly to S3 via presigned URLs, so the
+# bucket must allow cross-origin PUT/GET/HEAD from the app origin (the custom
+# domain when set, otherwise the default CloudFront domain).
+resource "aws_s3_bucket_cors_configuration" "documents" {
+  bucket = aws_s3_bucket.documents.id
+
+  cors_rule {
+    allowed_methods = ["PUT", "GET", "HEAD"]
+    allowed_origins = [
+      local.use_custom_domain ? "https://${local.ui_domain}" : "https://${aws_cloudfront_distribution.ui.domain_name}",
+    ]
+    allowed_headers = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
 # SPA routing: rewrite extensionless paths (client-side routes) to
 # /index.html. Scoped to the S3 behavior only — a distribution-wide
 # custom_error_response would also rewrite API error responses on the

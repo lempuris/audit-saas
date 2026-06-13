@@ -37,6 +37,8 @@ resource "aws_ecs_task_definition" "api" {
           name  = "CORS_ORIGINS"
           value = local.use_custom_domain ? "https://${local.ui_domain}" : "https://${aws_cloudfront_distribution.ui.domain_name}"
         },
+        { name = "DOCUMENTS_BUCKET", value = aws_s3_bucket.documents.bucket },
+        { name = "AWS_DEFAULT_REGION", value = var.aws_region },
       ]
 
       # entrypoint.sh runs `alembic upgrade head` before starting uvicorn, so
