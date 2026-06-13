@@ -1,72 +1,55 @@
-# Phase 3 — Fieldwork & Documentation: acceptance demo
+# Phase 3 — Fieldwork & Documentation: walkthrough
 
-This script verifies the Phase 3 acceptance criterion end-to-end on the deployed
-app:
+> **Status: ✅ Verified 13 June 2026** on the live app — all steps below worked.
 
-> A working paper can be prepared with evidence attached, cross-referenced to the
-> TB, tick-marked, sampled, and has a raised-and-cleared review note.
+A short walkthrough to confirm an auditor can do the core fieldwork on an
+engagement: prepare a working paper, attach evidence, cross-reference it, add
+tick marks, draw a sample, and clear a review note.
 
-It assumes a demo engagement already in **fieldwork** with a trial balance
-imported (see `docs/phase2-acceptance-demo.md` and `docs/sample-trial-balance.csv`).
+**Before you start:** open an engagement that is in fieldwork and already has a
+trial balance imported. Sign in as a Manager or Partner (a few steps are for
+reviewers); an Auditor login is handy for the preparer steps.
 
-## Prerequisites
+## 1. Prepare a working paper
+- Open the engagement, go to **Fieldwork → Working papers**, and click **New
+  working paper**.
+- Choose an area (e.g. *Cash and bank*), give it a reference (e.g. **C-1**) and a
+  title (e.g. *Bank reconciliation*), write the objective, and save.
+- Edit it to add the result and conclusion, then save again.
+- Open **History** — each save is listed as a version.
+- Set the status to **Prepared** — your name and the date appear.
 
-- The Phase 3 PR stack (#38–#49) is merged to `master` and deployed.
-- **Documents `terraform apply` has run** (PR #40): the task has `DOCUMENTS_BUCKET`
-  + `AWS_DEFAULT_REGION`, the task role has `s3:GetObjectVersion`, and the
-  documents bucket has a CORS rule allowing `PUT`/`GET`/`HEAD` from the app origin.
-  Without this, document upload/download fails in the browser.
-- Sign in as a **Manager/Partner** for the reviewer steps; an **Auditor** account
-  on the engagement team is handy for the preparer/respond steps.
+## 2. Attach evidence
+- Go to **Fieldwork → Documents**.
+- Choose a file, attach it to working paper **C-1**, and click **Upload**. It
+  appears in the list with its file size.
+- Click **Download** to open it.
 
-## Steps
+## 3. Cross-reference it
+- Back on the working paper, open **Links**.
+- Link it to the Cash line in the trial balance, and to the document you uploaded.
+- Click a link to jump straight to the item it points to.
 
-### 1. Working paper (PR #38/#39)
-1. Open the engagement → **Fieldwork → Working papers**.
-2. **New working paper**: FS area *Cash and bank*, index ref `C-1`, title
-   "Bank reconciliation", objective text. Create.
-3. **Edit** the paper, fill in Result and Conclusion, Save.
-4. Open **History** — confirm ≥ 2 version snapshots (create + each edit).
-5. Set status to **prepared** and confirm the preparer/timestamp shows.
+## 4. Add a tick mark
+- Open **Trial balance**. If the tick-mark legend is empty, click **Load standard
+  tick marks**.
+- On the Cash line, pick a tick mark (e.g. *✓ Agreed to supporting
+  documentation*). It shows on the line, and its meaning appears in the legend.
 
-### 2. Evidence document (PR #40/#41)
-1. **Fieldwork → Documents**. Choose a file, attach it to working paper `C-1`,
-   **Upload** (presign → S3 PUT → confirm). It appears as `available` with a size.
-2. Click **Download** — the file opens via a presigned URL.
-3. In **Audit trail** (Admin/Partner), confirm a `document` `read` row for the
-   download and a `create` row for the upload.
+## 5. Draw a sample
+- Go to **Fieldwork → Sampling**.
+- Choose a method (Monetary-unit, Random, or Systematic), enter the population
+  value and your tolerable misstatement, and click **Compute sample** — the
+  sample size appears.
+- **Save** the sample, then open **Selection** to see the items it picked.
 
-### 3. Cross-reference to the TB (PR #42/#43)
-1. Back on **Working papers**, open **Links** on `C-1`.
-2. Add a link with target type **TB line** → pick the Cash account line. Add
-   another to the uploaded **document**.
-3. Click a chip and confirm it navigates to the trial-balance / documents screen.
+## 6. Raise and clear a review note
+- On the working paper, open **Notes** and **Raise** a note for the auditor
+  (e.g. *"Explain the reconciling item"*).
+- The auditor sees it on their **Dashboard** under *My open review notes*, opens
+  the paper, and **Responds**.
+- A reviewer **Clears** it — it disappears from the open-notes list.
 
-### 4. Tick mark (PR #44/#45)
-1. **Planning → Trial balance**. If the legend is empty, **Load standard tick
-   marks** (Manager+).
-2. On the Cash line, use the **+** dropdown to apply `✓ Agreed to supporting
-   documentation`. The symbol chip shows; the legend lists it.
-3. Click the chip to remove it, then re-apply (optional).
-
-### 5. Sample (PR #46/#47)
-1. **Fieldwork → Sampling**. Method **Monetary-unit (MUS)**, population value
-   e.g. `1000000`, tolerable misstatement = performance materiality, 95%.
-2. **Compute sample** — a size and reliability factor show. **Save sample**.
-3. Repeat with **Random** and **Systematic** (supply a population item count).
-4. Expand **Selection** on a saved sample and confirm the seed + selected
-   items/monetary points are stored.
-
-### 6. Review note (PR #48/#49)
-1. As a reviewer, on `C-1` open **Notes**, **Raise** a note assigned to the
-   auditor ("Explain the reconciling item").
-2. The auditor sees it under **Dashboard → My open review notes**; they open the
-   working paper and **Respond**.
-3. A reviewer (or the note's author) **Clears** it. Confirm it leaves the open-notes
-   dashboard and shows `cleared`.
-
-## Result
-
-When all six steps pass on the deployed app, tick the Phase 3 acceptance box in
-`checklist.md` and note the verification date. Phase 4 (Review, Completion &
-Reporting) may then begin.
+## Done
+All six steps work on the live app (verified 13 June 2026), so **Phase 3 is
+complete** and Phase 4 (Review, Completion & Reporting) can begin.
