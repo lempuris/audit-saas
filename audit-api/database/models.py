@@ -378,6 +378,37 @@ class TickMarkApplication(BaseModel):
     applied_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
 
 
+class Sample(BaseModel):
+    """An audit sample (ISA 530) drawn from a population: random, systematic, or
+    monetary-unit. The sample size is computed from the population value,
+    tolerable/expected misstatement and a confidence-derived reliability factor;
+    the reproducible selection (seed + selected items/monetary points) is stored
+    in selection_basis."""
+
+    __tablename__ = "samples"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    working_paper_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("working_papers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    fs_area: Mapped[str | None] = mapped_column(String, nullable=True)
+    population_description: Mapped[str] = mapped_column(String, nullable=False)
+    method: Mapped[str] = mapped_column(String, nullable=False)
+    population_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    population_value: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    tolerable_misstatement: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    expected_misstatement: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    confidence_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    reliability_factor: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    sample_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    selection_basis: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
