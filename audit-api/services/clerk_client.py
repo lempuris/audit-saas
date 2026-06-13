@@ -17,6 +17,11 @@ from config.settings import get_settings
 CLERK_API_BASE = "https://api.clerk.com/v1"
 
 
+class ClerkResourceNotFoundError(Exception):
+    """Clerk returned 404 — the user/resource no longer exists there (e.g. it was
+    deleted in the Clerk dashboard). Callers reconcile the local mirror."""
+
+
 class ClerkBackendClient:
     def __init__(self, secret_key: str, base_url: str = CLERK_API_BASE) -> None:
         if not secret_key:
@@ -27,6 +32,8 @@ class ClerkBackendClient:
 
     async def _request(self, method: str, path: str, json: dict[str, Any] | None = None) -> Any:
         response = await self._client.request(method, path, json=json)
+        if response.status_code == status.HTTP_404_NOT_FOUND:
+            raise ClerkResourceNotFoundError(path)
         if 400 <= response.status_code < 500:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -21,6 +21,7 @@ const users: UserRecord[] = [
     email: "asha@firm.example",
     first_name: "Asha",
     last_name: "Mushi",
+    display_name: "Asha Mushi",
     role: "auditor",
     is_active: true,
     created_at: "2026-06-11T08:00:00Z",
@@ -86,6 +87,30 @@ describe("UsersScreen", () => {
     await waitFor(() =>
       expect(apiMock.post).toHaveBeenCalledWith("/api/users/user_abc/deactivate"),
     );
+  });
+
+  it("hides inactive users until the toggle is ticked", async () => {
+    apiMock.get.mockResolvedValue([
+      users[0],
+      {
+        ...users[0],
+        id: "22222222-2222-2222-2222-222222222222",
+        clerk_user_id: "user_gone",
+        email: "lempuris@hotmail.com",
+        first_name: null,
+        last_name: null,
+        display_name: "lempuris",
+        is_active: false,
+      },
+    ]);
+    render(<UsersScreen />);
+    await screen.findByText("Asha Mushi");
+
+    // Inactive user hidden by default.
+    expect(screen.queryByText("lempuris@hotmail.com")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Show inactive/));
+    expect(await screen.findByText("lempuris@hotmail.com")).toBeInTheDocument();
   });
 
   it("surfaces API failures", async () => {

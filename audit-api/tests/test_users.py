@@ -14,7 +14,7 @@ from database.models import User
 from database.session import get_db
 from main import app
 from middleware.auth import ClerkTokenVerifier
-from services.clerk_client import get_clerk_client
+from services.clerk_client import ClerkResourceNotFoundError, get_clerk_client
 
 ALLOWED_ORIGIN = "http://localhost:3001"
 
@@ -148,6 +148,26 @@ async def test_list_users_returns_records() -> None:
     assert len(body) == 1
     assert body[0]["clerk_user_id"] == "user_abc"
     assert body[0]["is_active"] is True
+    assert body[0]["display_name"] == "Asha Mushi"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({}, "Asha Mushi"),
+        ({"last_name": None}, "Asha"),
+        # Invited users often arrive with no name — fall back to the email local-part.
+        ({"first_name": None, "last_name": None}, "asha"),
+        # No name and no email — fall back to the Clerk id so the cell is never blank.
+        ({"first_name": None, "last_name": None, "email": None}, "user_abc"),
+    ],
+)
+async def test_display_name_falls_back(overrides: dict[str, Any], expected: str) -> None:
+    use_db(FakeSession(users=[make_user(**overrides)]))
+    async with client() as c:
+        response = await c.get("/api/users", headers=bearer())
+    assert response.json()[0]["display_name"] == expected
 
 
 @pytest.mark.unit
@@ -196,6 +216,32 @@ async def test_set_role_updates_local_and_clerk(clerk: FakeClerk) -> None:
     audit = session.added[0]
     assert audit.before == {"role": "auditor"}
     assert audit.after == {"role": "manager"}
+    assert session.committed
+
+
+@pytest.mark.unit
+async def test_set_role_reconciles_when_deleted_in_clerk() -> None:
+    # User exists in our mirror but was deleted in the Clerk dashboard.
+    user = make_user()
+    session = FakeSession(users=[user])
+    use_db(session)
+
+    class MissingClerk(FakeClerk):
+        async def set_user_role(self, clerk_user_id: str, role: str) -> None:
+            raise ClerkResourceNotFoundError(clerk_user_id)
+
+    app.dependency_overrides[get_clerk_client] = lambda: MissingClerk()
+    async with client() as c:
+        response = await c.patch(
+            "/api/users/user_abc/role", json={"role": "manager"}, headers=bearer()
+        )
+
+    assert response.status_code == 409
+    assert "no longer exists in Clerk" in response.json()["detail"]
+    # Role unchanged; the mirror row is marked inactive and the change is audited.
+    assert user.role == "auditor"
+    assert user.is_active is False
+    assert session.added[0].after == {"is_active": False, "reason": "deleted in Clerk"}
     assert session.committed
 
 

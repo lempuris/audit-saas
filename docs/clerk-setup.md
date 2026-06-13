@@ -57,6 +57,31 @@ an email sign-up link and appear in the local `users` table via the
 `user.created` webhook once they accept. Set the invite's role at invite time
 (it is stored in `public_metadata.role`).
 
+**Require a name at sign-up (otherwise the Users list shows "—").** By default
+Clerk treats the name as optional, and the invitation sign-up flow goes straight
+to setting a password — so invited users land with `first_name`/`last_name` null
+and the webhook syncs a nameless row. In the Clerk dashboard go to
+**User & Authentication → Personal information** and set **Name = Required** so
+sign-up collects it. The UI degrades gracefully regardless — `UserRecord` exposes
+a computed `display_name` that falls back to the email local-part, then the Clerk
+id — but a real name is better.
+
+To fix a user already created without a name, edit their name in the Clerk
+dashboard; that fires `user.updated` and the webhook backfills the mirror.
+
+**Manage users in-app — never delete them in the Clerk dashboard.** Invite,
+role changes, and deactivate/reactivate all happen on the in-app **Users**
+screen, which calls the Clerk Backend API for you; admins never need the Clerk
+dashboard for day-to-day user management. To remove someone, use **Deactivate**
+— it bans the Clerk user (blocking sign-in) and keeps the mirror in sync, and is
+reversible via Reactivate. Do **not** use the Clerk dashboard's *Delete user*:
+the `users` table is a soft-delete mirror (rows are kept so audit-trail entries
+can resolve their author), so a dashboard deletion leaves a stale row, and any
+in-app action on it then fails because the Clerk user is gone. The app handles
+this defensively — a Clerk 404 reconciles the row to inactive and returns a
+clear message — but the row cannot be restored once the Clerk user is deleted.
+Inactive users are hidden on the Users screen behind a "Show inactive" toggle.
+
 ## 5. Before go-live
 
 - Rotate `CLERK_SECRET_KEY` (it was shared during development) and create a
