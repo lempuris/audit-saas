@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "../services/api";
 import type { Me } from "../types/me";
+import type { TickMarkApplicationRecord, TickMarkRecord } from "../types/tickMarks";
 import type {
   FSAreaSummary,
   TrialBalanceDetail,
@@ -11,7 +12,13 @@ import type {
 } from "../types/trialBalance";
 import TrialBalanceScreen from "./TrialBalanceScreen";
 
-const apiMock = { get: vi.fn(), postForm: vi.fn(), patch: vi.fn() };
+const apiMock = {
+  get: vi.fn(),
+  postForm: vi.fn(),
+  patch: vi.fn(),
+  post: vi.fn(),
+  delete: vi.fn(),
+};
 const meState: { me: Me | null } = { me: null };
 
 vi.mock("../hooks/useApi", () => ({
@@ -66,6 +73,23 @@ const preview: TrialBalancePreview = {
   total_rows: 10,
 };
 
+const tickMark: TickMarkRecord = {
+  id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  symbol: "✓",
+  meaning: "Agreed to supporting documentation",
+  sort_order: 10,
+};
+
+let tickApplications: TickMarkApplicationRecord[] = [];
+
+/** Shared GET handler covering TB + tick-mark endpoints. */
+function tbGet(path: string): Promise<unknown> {
+  if (path.endsWith("/summary")) return Promise.resolve(summary);
+  if (path.includes("/tick-mark-applications")) return Promise.resolve(tickApplications);
+  if (path === "/api/tick-marks") return Promise.resolve([tickMark]);
+  return Promise.resolve(detail);
+}
+
 function renderScreen() {
   return render(
     <MemoryRouter initialEntries={[`/engagements/${engagementId}/trial-balance`]}>
@@ -81,6 +105,7 @@ function renderScreen() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  tickApplications = [];
   meState.me = { user_id: "user_1", session_id: null, role: "manager" };
 });
 
@@ -135,9 +160,7 @@ describe("TrialBalanceScreen", () => {
   });
 
   it("renders lines and FS-area summary with movement", async () => {
-    apiMock.get.mockImplementation((path: string) =>
-      path.endsWith("/summary") ? Promise.resolve(summary) : Promise.resolve(detail),
-    );
+    apiMock.get.mockImplementation(tbGet);
     renderScreen();
 
     expect(await screen.findByText("Cash at bank")).toBeInTheDocument();
@@ -146,9 +169,7 @@ describe("TrialBalanceScreen", () => {
   });
 
   it("saves regrouped lines", async () => {
-    apiMock.get.mockImplementation((path: string) =>
-      path.endsWith("/summary") ? Promise.resolve(summary) : Promise.resolve(detail),
-    );
+    apiMock.get.mockImplementation(tbGet);
     apiMock.patch.mockResolvedValue([]);
     renderScreen();
     await screen.findByText("Cash at bank");
@@ -168,13 +189,68 @@ describe("TrialBalanceScreen", () => {
 
   it("hides import and editing from auditors", async () => {
     meState.me = { user_id: "user_2", session_id: null, role: "auditor" };
-    apiMock.get.mockImplementation((path: string) =>
-      path.endsWith("/summary") ? Promise.resolve(summary) : Promise.resolve(detail),
-    );
+    apiMock.get.mockImplementation(tbGet);
     renderScreen();
     await screen.findByText("Cash at bank");
     expect(screen.queryByRole("button", { name: "Re-import" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("FS area for 9999")).not.toBeInTheDocument();
     expect(screen.getByText("Unmapped")).toBeInTheDocument();
+  });
+
+  it("renders the tick-mark legend and applies a mark to a line", async () => {
+    apiMock.get.mockImplementation(tbGet);
+    apiMock.post.mockResolvedValue({});
+    renderScreen();
+    await screen.findByText("Cash at bank");
+
+    // Legend lists the library entry (as a list item, distinct from the apply dropdown).
+    expect(screen.getByText("Tick-mark legend")).toBeInTheDocument();
+    expect(screen.getByRole("listitem")).toHaveTextContent(
+      "Agreed to supporting documentation",
+    );
+
+    fireEvent.change(screen.getByLabelText("Apply tick mark to 1000"), {
+      target: { value: tickMark.id },
+    });
+
+    await waitFor(() =>
+      expect(apiMock.post).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/tick-mark-applications`,
+        {
+          tick_mark_id: tickMark.id,
+          target_type: "trial_balance_line",
+          target_id: "77777777-7777-7777-7777-777777777777",
+        },
+      ),
+    );
+  });
+
+  it("shows an applied tick mark and lets a manager remove it", async () => {
+    tickApplications = [
+      {
+        id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        engagement_id: engagementId,
+        tick_mark_id: tickMark.id,
+        target_type: "trial_balance_line",
+        target_id: "77777777-7777-7777-7777-777777777777",
+        note: null,
+        applied_by: "user_1",
+        created_at: "2026-06-13T08:00:00Z",
+        symbol: "✓",
+        meaning: "Agreed to supporting documentation",
+      },
+    ];
+    apiMock.get.mockImplementation(tbGet);
+    apiMock.delete.mockResolvedValue(undefined);
+    renderScreen();
+    await screen.findByText("Cash at bank");
+
+    fireEvent.click(screen.getByTitle("Agreed to supporting documentation — click to remove"));
+
+    await waitFor(() =>
+      expect(apiMock.delete).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/tick-mark-applications/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb`,
+      ),
+    );
   });
 });
