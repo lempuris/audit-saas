@@ -1,5 +1,8 @@
 # Phase 3 — Fieldwork & Documentation: acceptance demo
 
+> **Status: ✅ verified 2026-06-13** on the deployed app. All six steps below
+> passed end-to-end. Re-run this script after material fieldwork changes.
+
 This script verifies the Phase 3 acceptance criterion end-to-end on the deployed
 app:
 
@@ -67,6 +70,6 @@ imported (see `docs/phase2-acceptance-demo.md` and `docs/sample-trial-balance.cs
 
 ## Result
 
-When all six steps pass on the deployed app, tick the Phase 3 acceptance box in
-`checklist.md` and note the verification date. Phase 4 (Review, Completion &
-Reporting) may then begin.
+All six steps passed on the deployed app on **2026-06-13**; the Phase 3 acceptance
+box in `checklist.md` is ticked. **Phase 4 (Review, Completion & Reporting) may
+begin.**

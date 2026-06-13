@@ -302,24 +302,35 @@ risks linked to programs, and lead schedules with correct totals.
 - [x] **Review notes feature**: raise on any working paper, assign, respond, clear;
       open-notes dashboard (API PR #48, UI PR #49)
 
-> **Phase 3 status (2026-06-13, built as a stacked PR set):** All six features
-> are implemented as 12 stacked draft PRs (#38–#49), each an API slice then a
-> screen/UI slice, to be merged together. Migrations 0009–0014 add
-> working_papers (+versions), documents, cross_references, tick_marks
-> (+applications), samples, and review_notes. Backend: pytest 192 passed, ruff
-> clean, single Alembic head 0014. Frontend: vitest 86 passed, ESLint/tsc/build
-> clean.
+> **Phase 3 status (2026-06-13, merged & deployed):** All six features are in
+> `master`, merged as a stacked PR set #38–#50 — each an API slice then a
+> screen/UI slice (working papers #38/#51, documents #40/#41, cross-refs
+> #42/#43, tick marks #44/#45, sampling #46/#47, review notes #48/#49, docs #50).
+> Migrations 0009–0014 (working_papers +versions, documents, cross_references,
+> tick_marks +applications, samples, review_notes) applied on deploy; single
+> Alembic head 0014. Backend pytest 193 passed, frontend vitest 86 passed,
+> ruff/ESLint/tsc/build clean.
 >
-> **Documents (PR #40) carries infrastructure changes** (task env
-> `DOCUMENTS_BUCKET` + `AWS_DEFAULT_REGION`, IAM `s3:GetObjectVersion`,
-> documents-bucket CORS) that require a **manual `terraform apply`** before
-> presigned uploads/downloads work in production; the rest auto-deploy on merge.
+> The documents infrastructure (task env `DOCUMENTS_BUCKET` +
+> `AWS_DEFAULT_REGION`, IAM `s3:GetObjectVersion`, documents-bucket CORS) was
+> applied via a manual `terraform apply` (task-def revision 3). Deploys are now
+> serialized by a CI concurrency guard (PR #52) after back-to-back merges raced
+> on the S3 sync. Post-merge UX fixes (PR #53): working-paper preparer/editor
+> names resolved to people, a proper document-upload button, and readable
+> sampling validation errors.
 >
-> Acceptance is verified end-to-end on the deployed app per
-> `docs/phase3-acceptance-demo.md` once the stack is merged and the documents
-> `terraform apply` has run.
+> **Phase 3 acceptance — verified 2026-06-13.** A demo engagement was run
+> end-to-end on the deployed app per `docs/phase3-acceptance-demo.md`: a working
+> paper prepared (objective/result/conclusion, versioned); an evidence document
+> uploaded via presigned URL and downloaded (access logged in the audit trail);
+> the working paper cross-referenced to a TB line and the document; a tick mark
+> applied to a schedule line with its legend; random / systematic / monetary-unit
+> samples drawn with their selection bases stored; and a review note raised,
+> responded to and cleared (leaving the open-notes dashboard).
+>
+> **Phase 3 is complete. Phase 4 may begin.**
 
-**Acceptance:** A working paper can be prepared with evidence attached,
+**Acceptance:** ✅ A working paper can be prepared with evidence attached,
 cross-referenced to the TB, tick-marked, sampled, and has a raised-and-cleared
 review note.
 
