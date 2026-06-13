@@ -246,6 +246,60 @@ class RiskProcedureLink(BaseModel):
     )
 
 
+class WorkingPaper(BaseModel):
+    """A working paper documenting fieldwork for an FS area (ISA 230):
+    indexed (e.g. A-1) and structured as objective / result / conclusion.
+    Every save appends an immutable WorkingPaperVersion snapshot, so the full
+    edit history is reconstructable. The reviewed/approved sign-off workflow
+    is Phase 4 — status here is only draft/prepared."""
+
+    __tablename__ = "working_papers"
+    __table_args__ = (UniqueConstraint("engagement_id", "index_ref"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    fs_area: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    # File-index reference within the engagement, unique per engagement.
+    index_ref: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    objective: Mapped[str] = mapped_column(String, nullable=False)  # the procedure performed
+    result: Mapped[str] = mapped_column(String, nullable=False)
+    conclusion: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft", index=True)
+    # The program step this working paper documents, if any.
+    procedure_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagement_procedures.id"), nullable=True
+    )
+    prepared_by: Mapped[str | None] = mapped_column(String, nullable=True)  # Clerk user id
+    prepared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
+class WorkingPaperVersion(BaseModel):
+    """Immutable numbered snapshot of a working paper's content, appended on
+    create and on every edit so prior states stay viewable."""
+
+    __tablename__ = "working_paper_versions"
+    __table_args__ = (UniqueConstraint("working_paper_id", "version_no"),)
+
+    working_paper_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("working_papers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    version_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    index_ref: Mapped[str] = mapped_column(String, nullable=False)
+    fs_area: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    objective: Mapped[str] = mapped_column(String, nullable=False)
+    result: Mapped[str] = mapped_column(String, nullable=False)
+    conclusion: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    edited_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""

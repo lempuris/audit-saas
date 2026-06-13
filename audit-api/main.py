@@ -16,6 +16,7 @@ from routers import (
     risks_router,
     trial_balance_router,
     users_router,
+    working_papers_router,
 )
 
 settings = get_settings()
@@ -48,3 +49,4 @@ app.include_router(audit_programs_router.templates_router)
 app.include_router(audit_programs_router.router)
 app.include_router(planning_router.router)
 app.include_router(planning_router.me_router)
+app.include_router(working_papers_router.router)
