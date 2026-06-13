@@ -8,6 +8,7 @@ import AuditProgramScreen from "./screens/AuditProgramScreen";
 import AuditTrailScreen from "./screens/AuditTrailScreen";
 import ClientDetailScreen from "./screens/ClientDetailScreen";
 import ClientsScreen from "./screens/ClientsScreen";
+import DocumentsScreen from "./screens/DocumentsScreen";
 import EngagementDetailScreen from "./screens/EngagementDetailScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
 import HomeScreen from "./screens/HomeScreen";
@@ -61,6 +62,10 @@ export default function App() {
                 <Route
                   path="engagements/:engagementId/working-papers"
                   element={<WorkingPapersScreen />}
+                />
+                <Route
+                  path="engagements/:engagementId/documents"
+                  element={<DocumentsScreen />}
                 />
                 <Route
                   path="audit-trail"
