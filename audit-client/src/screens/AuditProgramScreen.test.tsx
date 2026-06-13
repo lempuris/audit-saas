@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ProcedureRecord } from "../types/auditPrograms";
+import type { EngagementDetail, TeamMemberRecord } from "../types/engagements";
 import type { Me } from "../types/me";
 import type { RiskRecord } from "../types/risks";
 import AuditProgramScreen from "./AuditProgramScreen";
@@ -55,6 +56,26 @@ const risk: RiskRecord = {
   updated_at: "2026-06-12T08:00:00Z",
 };
 
+const teamMember: TeamMemberRecord = {
+  clerk_user_id: "user_aud",
+  display_name: "Aud Itor",
+  email: "aud@firm.example",
+  role_on_engagement: "auditor",
+  independence_confirmed: true,
+  independence_confirmed_at: null,
+};
+
+const engagementDetail: EngagementDetail = {
+  id: engagementId,
+  client_id: "66666666-6666-6666-6666-666666666666",
+  engagement_type: "audit",
+  fiscal_year: 2026,
+  status: "planning",
+  created_at: "2026-06-12T08:00:00Z",
+  updated_at: "2026-06-12T08:00:00Z",
+  team: [teamMember],
+};
+
 function renderScreen() {
   return render(
     <MemoryRouter initialEntries={[`/engagements/${engagementId}/program`]}>
@@ -67,9 +88,11 @@ function renderScreen() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  apiMock.get.mockImplementation((path: string) =>
-    path.endsWith("/risks") ? Promise.resolve([risk]) : Promise.resolve([procedure]),
-  );
+  apiMock.get.mockImplementation((path: string) => {
+    if (path.endsWith("/risks")) return Promise.resolve([risk]);
+    if (path.endsWith("/procedures")) return Promise.resolve([procedure]);
+    return Promise.resolve(engagementDetail);
+  });
   apiMock.post.mockResolvedValue({});
   apiMock.patch.mockResolvedValue(procedure);
   apiMock.put.mockResolvedValue(procedure);
@@ -116,13 +139,14 @@ describe("AuditProgramScreen", () => {
     );
   });
 
-  it("assigns and sets a due date via PATCH", async () => {
+  it("assigns a team member via the dropdown and sets a due date via PATCH", async () => {
     renderScreen();
     await screen.findByText("Revenue cutoff testing");
 
-    const assignee = screen.getByLabelText("Assignee for Revenue cutoff testing");
+    const assignee = await screen.findByLabelText("Assignee for Revenue cutoff testing");
+    // The dropdown lists team members by name, not raw Clerk ids.
+    expect(within(assignee).getByRole("option", { name: "Aud Itor" })).toBeInTheDocument();
     fireEvent.change(assignee, { target: { value: "user_aud" } });
-    fireEvent.blur(assignee);
 
     await waitFor(() =>
       expect(apiMock.patch).toHaveBeenCalledWith(
@@ -141,6 +165,21 @@ describe("AuditProgramScreen", () => {
         { due_date: "2026-07-31" },
       ),
     );
+  });
+
+  it("prompts to add team members when the engagement has none", async () => {
+    apiMock.get.mockImplementation((path: string) => {
+      if (path.endsWith("/risks")) return Promise.resolve([risk]);
+      if (path.endsWith("/procedures")) return Promise.resolve([procedure]);
+      return Promise.resolve({ ...engagementDetail, team: [] });
+    });
+    renderScreen();
+    await screen.findByText("Revenue cutoff testing");
+
+    expect(await screen.findByRole("link", { name: "Add team members" })).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Assignee for Revenue cutoff testing"),
+    ).not.toBeInTheDocument();
   });
 
   it("links a risk to a procedure", async () => {

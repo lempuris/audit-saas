@@ -27,6 +27,8 @@ const engagement: EngagementDetail = {
   team: [
     {
       clerk_user_id: "user_me",
+      display_name: "Me Myself",
+      email: "me@firm.example",
       role_on_engagement: "staff",
       independence_confirmed: false,
       independence_confirmed_at: null,

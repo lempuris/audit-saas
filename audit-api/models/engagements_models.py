@@ -44,6 +44,9 @@ class TeamMemberRecord(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     clerk_user_id: str
+    # Resolved from the users mirror so the UI shows people, not raw Clerk ids.
+    display_name: str | None = None
+    email: str | None = None
     role_on_engagement: str | None
     independence_confirmed: bool
     independence_confirmed_at: datetime | None

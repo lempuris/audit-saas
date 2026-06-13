@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from database.models import Client, Engagement, EngagementTeamMember
+from database.models import Client, Engagement, EngagementTeamMember, User
 from database.session import get_db
 from main import app
 from tests.conftest import FakeSession, bearer, client
@@ -287,3 +287,25 @@ async def test_detail_includes_team() -> None:
     assert body["status"] == "draft"
     assert len(body["team"]) == 1
     assert body["team"][0]["clerk_user_id"] == "user_member"
+
+
+@pytest.mark.unit
+async def test_detail_resolves_team_member_names() -> None:
+    engagement = make_engagement()
+    member = make_member(engagement.id, clerk_user_id="user_aud")
+    user = User(
+        id=uuid.uuid4(),
+        created_at=now(),
+        clerk_user_id="user_aud",
+        email="aud@firm.example",
+        first_name="Aud",
+        last_name="Itor",
+        role="auditor",
+        is_active=True,
+    )
+    use_db(FakeSession(rows=[engagement, member, user]))
+    async with client() as c:
+        response = await c.get(f"/api/engagements/{engagement.id}", headers=bearer("auditor"))
+    member_record = response.json()["team"][0]
+    assert member_record["display_name"] == "Aud Itor"
+    assert member_record["email"] == "aud@firm.example"
