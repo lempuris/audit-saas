@@ -14,6 +14,9 @@ export interface EngagementRecord {
 
 export interface TeamMemberRecord {
   clerk_user_id: string;
+  /** Resolved from the users mirror; null if no matching user row. */
+  display_name: string | null;
+  email: string | null;
   role_on_engagement: string | null;
   independence_confirmed: boolean;
   independence_confirmed_at: string | null;

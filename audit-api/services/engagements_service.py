@@ -14,7 +14,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Client, Engagement, EngagementTeamMember
+from database.models import Client, Engagement, EngagementTeamMember, User
 from models.auth_models import AuthenticatedUser, Role
 from models.engagements_models import (
     EngagementCreate,
@@ -27,6 +27,7 @@ from models.engagements_models import (
     TeamMemberRecord,
 )
 from services import audit_trail_service
+from utils.naming import display_name
 
 ENTITY_TYPE = "engagement"
 
@@ -83,8 +84,28 @@ async def get_engagement(session: AsyncSession, engagement_id: uuid.UUID) -> Eng
     engagement = await _get(session, engagement_id)
     team = await _team(session, engagement_id)
     detail = EngagementDetail.model_validate(engagement)
-    detail.team = [TeamMemberRecord.model_validate(member) for member in team]
+    detail.team = await _team_records(session, team)
     return detail
+
+
+async def _team_records(
+    session: AsyncSession, team: list[EngagementTeamMember]
+) -> list[TeamMemberRecord]:
+    """Map team rows to records, resolving names/emails from the users mirror so
+    the UI (e.g. the procedure-assignee dropdown) shows people, not Clerk ids."""
+    member_ids = {member.clerk_user_id for member in team}
+    users = list(await session.scalars(select(User).where(User.clerk_user_id.in_(member_ids))))
+    by_id = {user.clerk_user_id: user for user in users}
+
+    records = []
+    for member in team:
+        record = TeamMemberRecord.model_validate(member)
+        user = by_id.get(member.clerk_user_id)
+        if user is not None:
+            record.display_name = display_name(user.first_name, user.last_name, user.email)
+            record.email = user.email
+        records.append(record)
+    return records
 
 
 async def create_engagement(

@@ -9,8 +9,19 @@ import {
   type ProcedureStatus,
   type SeedResult,
 } from "../types/auditPrograms";
+import type { EngagementDetail, TeamMemberRecord } from "../types/engagements";
 import type { RiskRecord } from "../types/risks";
 import { FS_AREAS, fsAreaLabel } from "../types/trialBalance";
+
+function memberLabel(member: TeamMemberRecord): string {
+  return member.display_name ?? member.email ?? member.clerk_user_id;
+}
+
+function assigneeLabel(team: TeamMemberRecord[], assignedTo: string | null): string {
+  if (!assignedTo) return "—";
+  const member = team.find((m) => m.clerk_user_id === assignedTo);
+  return member ? memberLabel(member) : assignedTo;
+}
 
 const EMPTY_CUSTOM = { fs_area: "", title: "", description: "", isa_reference: "" };
 
@@ -22,6 +33,7 @@ export default function AuditProgramScreen() {
 
   const [procedures, setProcedures] = useState<ProcedureRecord[]>([]);
   const [risks, setRisks] = useState<RiskRecord[]>([]);
+  const [team, setTeam] = useState<TeamMemberRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -46,6 +58,10 @@ export default function AuditProgramScreen() {
       .get<RiskRecord[]>(`/api/engagements/${engagementId}/risks`)
       .then(setRisks)
       .catch(() => setRisks([]));
+    api
+      .get<EngagementDetail>(`/api/engagements/${engagementId}`)
+      .then((detail) => setTeam(detail.team))
+      .catch(() => setTeam([]));
   }, [api, base, engagementId]);
 
   useEffect(load, [load]);
@@ -260,25 +276,44 @@ export default function AuditProgramScreen() {
                       <p className="mt-0.5 text-xs text-slate-500">{procedure.description}</p>
                     </td>
                     <td className="px-4 py-2">
-                      {canWrite ? (
-                        <input
+                      {canWrite && team.length === 0 ? (
+                        <Link
+                          to={`/engagements/${engagementId}`}
+                          className="text-xs text-slate-500 underline"
+                        >
+                          Add team members
+                        </Link>
+                      ) : canWrite ? (
+                        <select
                           aria-label={`Assignee for ${procedure.title}`}
-                          defaultValue={procedure.assigned_to ?? ""}
-                          placeholder="user_…"
-                          onBlur={(e) => {
-                            const value = e.target.value.trim();
-                            if (value !== (procedure.assigned_to ?? "")) {
-                              patchProcedure(
-                                procedure.id,
-                                { assigned_to: value || null },
-                                "Assignee updated",
-                              );
-                            }
-                          }}
-                          className="w-36 rounded border border-slate-300 px-2 py-1 text-xs"
-                        />
+                          value={procedure.assigned_to ?? ""}
+                          disabled={busy}
+                          onChange={(e) =>
+                            patchProcedure(
+                              procedure.id,
+                              { assigned_to: e.target.value || null },
+                              "Assignee updated",
+                            )
+                          }
+                          className="w-40 rounded border border-slate-300 px-2 py-1 text-xs"
+                        >
+                          <option value="">Unassigned</option>
+                          {team.map((member) => (
+                            <option key={member.clerk_user_id} value={member.clerk_user_id}>
+                              {memberLabel(member)}
+                            </option>
+                          ))}
+                          {procedure.assigned_to &&
+                            !team.some((m) => m.clerk_user_id === procedure.assigned_to) && (
+                              <option value={procedure.assigned_to}>
+                                {procedure.assigned_to} (not on team)
+                              </option>
+                            )}
+                        </select>
                       ) : (
-                        <span className="text-slate-600">{procedure.assigned_to ?? "—"}</span>
+                        <span className="text-slate-600">
+                          {assigneeLabel(team, procedure.assigned_to)}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-2">
