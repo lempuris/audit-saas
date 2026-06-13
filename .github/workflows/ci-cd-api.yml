@@ -41,6 +41,12 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: quality
+    # Serialize deploys: queue rather than run concurrently so two pushes don't
+    # both force-deploy ECS at once (and one doesn't cancel another mid
+    # `ecs wait`). Never cancel an in-flight deploy.
+    concurrency:
+      group: deploy-api
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: production
     permissions:

@@ -49,6 +49,12 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: quality
+    # Serialize deploys: queue rather than run concurrently, so back-to-back
+    # merges can't interleave on the S3 sync (which left mismatched
+    # index.html/asset hashes once). Never cancel an in-flight deploy.
+    concurrency:
+      group: deploy-client
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: production
     permissions:
