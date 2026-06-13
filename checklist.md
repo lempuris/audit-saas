@@ -282,16 +282,38 @@ risks linked to programs, and lead schedules with correct totals.
 
 **Goal:** Execute the audit: working papers, evidence, sampling, review notes.
 
-- [ ] **Working papers feature**: indexed per FS area (A-1, B-2.1, …),
+- [x] **Working papers feature**: indexed per FS area (A-1, B-2.1, …),
       procedure/result/conclusion structure, preparer + date stamped, version history
-- [ ] **Documents feature**: upload evidence to S3 via presigned URLs, versioning,
+      (API PR #38, screen PR #39)
+- [x] **Documents feature**: upload evidence to S3 via presigned URLs, versioning,
       link documents to working papers, access logged in audit trail
-- [ ] **Cross-referencing**: link working papers ↔ TB lines ↔ documents; clickable refs
-- [ ] **Tick marks**: configurable tick-mark library applied to schedule lines, with legend
-- [ ] **Sampling feature**: random, systematic, and monetary-unit sampling; sample size
+      (API + infra PR #40, screen PR #41)
+- [x] **Cross-referencing**: link working papers ↔ TB lines ↔ documents; clickable refs
+      (API PR #42, UI PR #43)
+- [x] **Tick marks**: configurable tick-mark library applied to schedule lines, with legend
+      (API PR #44, UI PR #45)
+- [x] **Sampling feature**: random, systematic, and monetary-unit sampling; sample size
       from population/materiality/risk inputs; selection basis stored
-- [ ] **Review notes feature**: raise on any working paper, assign, respond, clear;
-      open-notes dashboard
+      (API PR #46, screen PR #47)
+- [x] **Review notes feature**: raise on any working paper, assign, respond, clear;
+      open-notes dashboard (API PR #48, UI PR #49)
+
+> **Phase 3 status (2026-06-13, built as a stacked PR set):** All six features
+> are implemented as 12 stacked draft PRs (#38–#49), each an API slice then a
+> screen/UI slice, to be merged together. Migrations 0009–0014 add
+> working_papers (+versions), documents, cross_references, tick_marks
+> (+applications), samples, and review_notes. Backend: pytest 192 passed, ruff
+> clean, single Alembic head 0014. Frontend: vitest 86 passed, ESLint/tsc/build
+> clean.
+>
+> **Documents (PR #40) carries infrastructure changes** (task env
+> `DOCUMENTS_BUCKET` + `AWS_DEFAULT_REGION`, IAM `s3:GetObjectVersion`,
+> documents-bucket CORS) that require a **manual `terraform apply`** before
+> presigned uploads/downloads work in production; the rest auto-deploy on merge.
+>
+> Acceptance is verified end-to-end on the deployed app per
+> `docs/phase3-acceptance-demo.md` once the stack is merged and the documents
+> `terraform apply` has run.
 
 **Acceptance:** A working paper can be prepared with evidence attached,
 cross-referenced to the TB, tick-marked, sampled, and has a raised-and-cleared
