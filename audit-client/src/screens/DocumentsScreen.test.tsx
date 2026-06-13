@@ -37,6 +37,7 @@ const wp: WorkingPaperRecord = {
   created_at: "2026-06-13T08:00:00Z",
   updated_at: "2026-06-13T08:00:00Z",
   current_version: 1,
+  prepared_by_name: null,
 };
 
 const doc: DocumentRecord = {

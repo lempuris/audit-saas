@@ -141,15 +141,23 @@ export default function DocumentsScreen() {
           onSubmit={upload}
           className="mt-4 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-white p-4"
         >
-          <label className="flex flex-col text-sm text-slate-600">
+          <div className="flex flex-col text-sm text-slate-600">
             File
-            <input
-              type="file"
-              aria-label="Evidence file"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="mt-1 text-sm"
-            />
-          </label>
+            <div className="mt-1 flex items-center gap-2">
+              <label className="cursor-pointer rounded border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                Choose file
+                <input
+                  type="file"
+                  aria-label="Evidence file"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="sr-only"
+                />
+              </label>
+              <span className="max-w-[16rem] truncate text-slate-500">
+                {file ? file.name : "No file selected"}
+              </span>
+            </div>
+          </div>
           <label className="flex flex-col text-sm text-slate-600">
             Attach to working paper
             <select

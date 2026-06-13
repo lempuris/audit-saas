@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
+import { formatApiError } from "../services/api";
 import {
   CONFIDENCE_LEVELS,
   SAMPLE_METHODS,
@@ -90,7 +91,7 @@ export default function SamplingScreen() {
       const result = await api.post<SampleComputation>(`${base}/preview`, buildPayload());
       setComputation(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatApiError(err));
     } finally {
       setBusy(false);
     }
@@ -107,7 +108,7 @@ export default function SamplingScreen() {
       setForm(EMPTY);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatApiError(err));
     } finally {
       setBusy(false);
     }
@@ -120,7 +121,7 @@ export default function SamplingScreen() {
       await api.delete(`${base}/${id}`);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatApiError(err));
     } finally {
       setBusy(false);
     }

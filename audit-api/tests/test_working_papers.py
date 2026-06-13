@@ -7,6 +7,7 @@ import pytest
 from database.models import (
     AuditTrailEntry,
     Engagement,
+    User,
     WorkingPaper,
     WorkingPaperVersion,
 )
@@ -222,6 +223,36 @@ async def test_cannot_modify_completed_engagement() -> None:
             headers=bearer("manager"),
         )
     assert response.status_code == 409
+
+
+def make_user(clerk_user_id: str, **overrides: Any) -> User:
+    defaults: dict[str, Any] = {
+        "id": uuid.uuid4(),
+        "created_at": now(),
+        "updated_at": now(),
+        "clerk_user_id": clerk_user_id,
+        "email": "jane@firm.example",
+        "first_name": "Jane",
+        "last_name": "Auditor",
+        "role": "auditor",
+        "is_active": True,
+    }
+    defaults.update(overrides)
+    return User(**defaults)
+
+
+@pytest.mark.unit
+async def test_resolves_preparer_and_editor_names() -> None:
+    engagement = make_engagement()
+    user = make_user("user_test")
+    wp = make_wp(engagement.id, status="prepared", prepared_by="user_test")
+    version = make_version(wp.id, 1, edited_by="user_test")
+    use_db(FakeSession(rows=[engagement, user, wp, version]))
+    async with client() as c:
+        listing = await c.get(url(engagement.id), headers=bearer("auditor"))
+        versions = await c.get(url(engagement.id, f"/{wp.id}/versions"), headers=bearer("auditor"))
+    assert listing.json()[0]["prepared_by_name"] == "Jane Auditor"
+    assert versions.json()[0]["edited_by_name"] == "Jane Auditor"
 
 
 @pytest.mark.unit

@@ -10,6 +10,31 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Human-readable message from a thrown error. FastAPI validation (422) and
+ * HTTPException bodies are JSON; surface their message(s) instead of dumping
+ * the raw `{"detail":[...]}` blob at the user.
+ */
+export function formatApiError(err: unknown): string {
+  if (err instanceof ApiError) {
+    try {
+      const body = JSON.parse(err.message) as { detail?: unknown };
+      const detail = body.detail;
+      if (typeof detail === "string") return detail;
+      if (Array.isArray(detail)) {
+        const msgs = detail
+          .map((d) => (d && typeof d === "object" && "msg" in d ? String(d.msg) : String(d)))
+          .filter(Boolean);
+        if (msgs.length > 0) return msgs.join("; ");
+      }
+    } catch {
+      // Not JSON — fall through to the raw message.
+    }
+    return err.message;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
 export class ApiClient {
   constructor(
     private readonly baseUrl: string,

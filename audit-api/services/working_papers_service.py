@@ -15,7 +15,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Engagement, WorkingPaper, WorkingPaperVersion
+from database.models import Engagement, User, WorkingPaper, WorkingPaperVersion
 from models.engagements_models import EngagementStatus
 from models.working_papers_models import (
     WorkingPaperCreate,
@@ -25,8 +25,23 @@ from models.working_papers_models import (
     WorkingPaperVersionRecord,
 )
 from services import audit_trail_service
+from utils.naming import display_name
 
 ENTITY_TYPE = "working_paper"
+
+
+async def _names_for(session: AsyncSession, ids: set[str]) -> dict[str, str]:
+    """Resolve Clerk user ids to display names via the local user mirror so the
+    UI shows people, not opaque ids (same approach as the audit trail)."""
+    wanted = {i for i in ids if i}
+    if not wanted:
+        return {}
+    users = list(await session.scalars(select(User).where(User.clerk_user_id.in_(wanted))))
+    return {
+        u.clerk_user_id: (display_name(u.first_name, u.last_name, u.email) or u.clerk_user_id)
+        for u in users
+        if u.clerk_user_id in wanted
+    }
 
 
 def _snapshot(wp: WorkingPaper) -> dict:
@@ -115,6 +130,16 @@ def _record(wp: WorkingPaper, current_version: int) -> WorkingPaperRecord:
     return record
 
 
+async def _record_with_name(
+    session: AsyncSession, wp: WorkingPaper, current_version: int
+) -> WorkingPaperRecord:
+    record = _record(wp, current_version)
+    if wp.prepared_by:
+        names = await _names_for(session, {wp.prepared_by})
+        record.prepared_by_name = names.get(wp.prepared_by)
+    return record
+
+
 async def _require_unique_index(
     session: AsyncSession, engagement_id: uuid.UUID, index_ref: str, *, exclude: uuid.UUID | None
 ) -> None:
@@ -148,7 +173,14 @@ async def list_working_papers(
         query = query.where(WorkingPaper.status == wp_status)
     rows = list(await session.scalars(query))
     versions = await _max_versions(session, [row.id for row in rows])
-    return [_record(row, versions.get(row.id, 0)) for row in rows]
+    names = await _names_for(session, {row.prepared_by for row in rows if row.prepared_by})
+    records = []
+    for row in rows:
+        record = _record(row, versions.get(row.id, 0))
+        if row.prepared_by:
+            record.prepared_by_name = names.get(row.prepared_by)
+        records.append(record)
+    return records
 
 
 async def get_working_paper(
@@ -156,7 +188,7 @@ async def get_working_paper(
 ) -> WorkingPaperRecord:
     wp = await _get_working_paper(session, engagement_id, wp_id)
     versions = await _max_versions(session, [wp.id])
-    return _record(wp, versions.get(wp.id, 0))
+    return await _record_with_name(session, wp, versions.get(wp.id, 0))
 
 
 async def create_working_paper(
@@ -195,7 +227,7 @@ async def create_working_paper(
     )
     await session.commit()
     await session.refresh(wp)
-    return _record(wp, 1)
+    return await _record_with_name(session, wp, 1)
 
 
 async def update_working_paper(
@@ -232,7 +264,7 @@ async def update_working_paper(
     )
     await session.commit()
     await session.refresh(wp)
-    return _record(wp, next_version)
+    return await _record_with_name(session, wp, next_version)
 
 
 async def update_status(
@@ -269,7 +301,7 @@ async def update_status(
     )
     await session.commit()
     await session.refresh(wp)
-    return _record(wp, next_version)
+    return await _record_with_name(session, wp, next_version)
 
 
 async def delete_working_paper(
@@ -296,4 +328,10 @@ async def list_versions(
 ) -> list[WorkingPaperVersionRecord]:
     await _get_working_paper(session, engagement_id, wp_id)
     versions = sorted(await _versions_for(session, wp_id), key=lambda v: v.version_no)
-    return [WorkingPaperVersionRecord.model_validate(v) for v in versions]
+    names = await _names_for(session, {v.edited_by for v in versions})
+    records = []
+    for v in versions:
+        record = WorkingPaperVersionRecord.model_validate(v)
+        record.edited_by_name = names.get(v.edited_by)
+        records.append(record)
+    return records

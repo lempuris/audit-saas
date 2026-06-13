@@ -35,6 +35,7 @@ const paper: WorkingPaperRecord = {
   created_at: "2026-06-13T08:00:00Z",
   updated_at: "2026-06-13T08:00:00Z",
   current_version: 1,
+  prepared_by_name: null,
 };
 
 const version: WorkingPaperVersionRecord = {
@@ -50,6 +51,7 @@ const version: WorkingPaperVersionRecord = {
   status: "draft",
   edited_by: "user_1",
   created_at: "2026-06-13T08:00:00Z",
+  edited_by_name: null,
 };
 
 function renderScreen() {
