@@ -16,6 +16,7 @@ from routers import (
     materiality_router,
     planning_router,
     risks_router,
+    sampling_router,
     tick_marks_router,
     trial_balance_router,
     users_router,
@@ -57,3 +58,4 @@ app.include_router(documents_router.router)
 app.include_router(cross_references_router.router)
 app.include_router(tick_marks_router.library_router)
 app.include_router(tick_marks_router.router)
+app.include_router(sampling_router.router)
