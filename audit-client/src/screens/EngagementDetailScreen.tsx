@@ -201,6 +201,16 @@ export default function EngagementDetailScreen() {
         </Link>
       </div>
 
+      <h3 className="mt-8 text-sm font-semibold text-slate-700">Fieldwork</h3>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link
+          to={`/engagements/${engagementId}/working-papers`}
+          className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Working papers
+        </Link>
+      </div>
+
       {planning && (
         <div className="mt-3 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded border border-slate-200 bg-white p-3">
