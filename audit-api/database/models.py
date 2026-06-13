@@ -345,6 +345,39 @@ class CrossReference(BaseModel):
     created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
 
 
+class TickMark(BaseModel):
+    """Firm-wide tick-mark library (ISA 230): a symbol and its meaning, seeded
+    with common defaults and extendable by the firm. The library doubles as the
+    legend rendered alongside tick-marked schedules."""
+
+    __tablename__ = "tick_marks"
+    __table_args__ = (UniqueConstraint("symbol"),)
+
+    symbol: Mapped[str] = mapped_column(String, nullable=False)
+    meaning: Mapped[str] = mapped_column(String, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class TickMarkApplication(BaseModel):
+    """A tick mark applied to a schedule line (a trial-balance line) or a
+    working paper on a given engagement, optionally with a note. The same mark
+    is applied at most once to the same target."""
+
+    __tablename__ = "tick_mark_applications"
+    __table_args__ = (UniqueConstraint("tick_mark_id", "target_type", "target_id"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    tick_mark_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tick_marks.id", ondelete="CASCADE"), nullable=False
+    )
+    target_type: Mapped[str] = mapped_column(String, nullable=False)
+    target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+    applied_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
