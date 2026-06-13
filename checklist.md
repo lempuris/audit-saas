@@ -263,17 +263,21 @@ appears in the audit trail; an engagement can be created end-to-end in the UI.
 > ISA program" button seeds the firm template library (idempotent) and
 > bulk-adds it to the engagement in one go.
 >
-> Remaining for Phase 2 acceptance — run the demo engagement end-to-end on
-> the deployed app (needs a signed-in user with roles assigned, see Phase 1
-> remaining items):
+> **Phase 2 acceptance — verified 2026-06-13.** The demo engagement was run
+> end-to-end on the deployed app (script in `docs/phase2-acceptance-demo.md`,
+> sample data in `docs/sample-trial-balance.csv`): TB imported via the
+> column-mapping wizard with FS-area grouping refined; materiality assessment
+> saved, approved and locked as Partner/Admin; risks documented and linked to
+> the standard ISA program; lead-schedule totals reconciled to the imported TB.
 >
-> 1. Import a TB through the column-mapping wizard; refine FS-area grouping.
-> 2. Save a materiality assessment; approve and lock it as Partner/Admin.
-> 3. Document risks; load the standard ISA program and link procedures to
->    the risks.
-> 4. Check lead-schedule totals against the imported TB.
+> Fixed during acceptance (separate PRs): invited-user names not populating +
+> audit-trail actor showing raw Clerk ids + deleted-in-Clerk users (PR #35),
+> and the procedure-assignee free-text box replaced with a team-member
+> dropdown (PR #36) — both merged and deployed.
+>
+> **Phase 2 is complete. Phase 3 may begin.**
 
-**Acceptance:** A demo engagement has an imported TB, locked materiality, documented
+**Acceptance:** ✅ A demo engagement has an imported TB, locked materiality, documented
 risks linked to programs, and lead schedules with correct totals.
 
 ---
