@@ -409,6 +409,34 @@ class Sample(BaseModel):
     created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
 
 
+class ReviewNote(BaseModel):
+    """A review note (ISA 220) raised by a reviewer on a working paper (or the
+    engagement at large), assigned to a preparer to respond, then cleared.
+    Status flows open → responded → cleared. Phase 4 will block engagement
+    completion while any note is uncleared."""
+
+    __tablename__ = "review_notes"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    working_paper_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("working_papers.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    text: Mapped[str] = mapped_column(String, nullable=False)
+    raised_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+    assigned_to: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="open", index=True)
+    response: Mapped[str | None] = mapped_column(String, nullable=True)
+    responded_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cleared_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""
