@@ -16,6 +16,7 @@ from routers import (
     health_router,
     materiality_router,
     planning_router,
+    reports_router,
     review_notes_router,
     risks_router,
     sampling_router,
@@ -66,3 +67,4 @@ app.include_router(review_notes_router.router)
 app.include_router(review_notes_router.me_router)
 app.include_router(signoffs_router.router)
 app.include_router(completion_router.router)
+app.include_router(reports_router.router)
