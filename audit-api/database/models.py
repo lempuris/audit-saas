@@ -437,6 +437,28 @@ class ReviewNote(BaseModel):
     cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class Signoff(BaseModel):
+    """Immutable sign-off event (ISA 220): a working paper or an FS area is
+    reviewed (Manager and above) or approved (Partner/Admin), or a working
+    paper is returned for changes. Rows are only ever inserted — the sign-off
+    history is the timestamped who/what/when behind each transition. A working
+    paper's current signed state lives on WorkingPaper.status; an FS area has no
+    status column, so its state is derived from the latest sign-off rows here."""
+
+    __tablename__ = "sign_offs"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    target_type: Mapped[str] = mapped_column(String, nullable=False)  # working_paper / fs_area
+    # Working-paper id (as text) or FS-area code, depending on target_type.
+    target_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    action: Mapped[str] = mapped_column(String, nullable=False)  # reviewed / approved / returned
+    resulting_status: Mapped[str] = mapped_column(String, nullable=False)
+    signed_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class AuditTrailEntry(BaseModel):
     """Immutable record of a write or login. The application only ever
     inserts; there are no update/delete paths."""

@@ -18,6 +18,7 @@ from routers import (
     review_notes_router,
     risks_router,
     sampling_router,
+    signoffs_router,
     tick_marks_router,
     trial_balance_router,
     users_router,
@@ -62,3 +63,4 @@ app.include_router(tick_marks_router.router)
 app.include_router(sampling_router.router)
 app.include_router(review_notes_router.router)
 app.include_router(review_notes_router.me_router)
+app.include_router(signoffs_router.router)

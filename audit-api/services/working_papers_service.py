@@ -75,6 +75,17 @@ def _require_not_completed(engagement: Engagement) -> None:
         )
 
 
+def _require_not_signed_off(wp: WorkingPaper) -> None:
+    # A reviewed/approved paper is locked; the sign-off "return" action sends it
+    # back to 'prepared' before it can be edited again.
+    if wp.status in ("reviewed", "approved"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Return the working paper for changes before editing a reviewed or "
+            "approved paper",
+        )
+
+
 async def _get_working_paper(
     session: AsyncSession, engagement_id: uuid.UUID, wp_id: uuid.UUID
 ) -> WorkingPaper:
@@ -241,6 +252,7 @@ async def update_working_paper(
     engagement = await _get_engagement(session, engagement_id)
     _require_not_completed(engagement)
     wp = await _get_working_paper(session, engagement_id, wp_id)
+    _require_not_signed_off(wp)
 
     before = _snapshot(wp)
     updates = payload.model_dump(exclude_unset=True)
@@ -278,6 +290,7 @@ async def update_status(
     engagement = await _get_engagement(session, engagement_id)
     _require_not_completed(engagement)
     wp = await _get_working_paper(session, engagement_id, wp_id)
+    _require_not_signed_off(wp)
 
     before = _snapshot(wp)
     wp.status = str(payload.status)
@@ -310,6 +323,7 @@ async def delete_working_paper(
     engagement = await _get_engagement(session, engagement_id)
     _require_not_completed(engagement)
     wp = await _get_working_paper(session, engagement_id, wp_id)
+    _require_not_signed_off(wp)
 
     await session.delete(wp)
     audit_trail_service.record(
