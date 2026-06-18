@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import CompletionChecklistPanel from "../components/CompletionChecklistPanel";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
 import type { ClientRecord } from "../types/clients";
@@ -165,6 +166,15 @@ export default function EngagementDetailScreen() {
             </button>
           ))}
         </div>
+      )}
+
+      {(engagement.status === "review" || engagement.status === "completed") && (
+        <>
+          <h3 className="mt-8 text-sm font-semibold text-slate-700">
+            Completion checklist (ISA 220/700)
+          </h3>
+          <CompletionChecklistPanel engagementId={engagementId ?? ""} canManage={canWrite} />
+        </>
       )}
 
       <h3 className="mt-8 text-sm font-semibold text-slate-700">Planning</h3>
