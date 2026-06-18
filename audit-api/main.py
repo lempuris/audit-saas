@@ -9,6 +9,7 @@ from routers import (
     auth_router,
     clerk_webhook_router,
     clients_router,
+    completion_router,
     cross_references_router,
     documents_router,
     engagements_router,
@@ -64,3 +65,4 @@ app.include_router(sampling_router.router)
 app.include_router(review_notes_router.router)
 app.include_router(review_notes_router.me_router)
 app.include_router(signoffs_router.router)
+app.include_router(completion_router.router)

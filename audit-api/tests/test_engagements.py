@@ -4,7 +4,13 @@ from typing import Any
 
 import pytest
 
-from database.models import Client, Engagement, EngagementTeamMember, User
+from database.models import (
+    Client,
+    CompletionChecklistItem,
+    Engagement,
+    EngagementTeamMember,
+    User,
+)
 from database.session import get_db
 from main import app
 from tests.conftest import FakeSession, bearer, client
@@ -196,7 +202,20 @@ async def test_only_partner_or_admin_can_complete() -> None:
     assert as_manager.status_code == 403
     assert engagement.status == "review"
 
-    use_db(FakeSession(rows=[engagement]))
+    # The completion gate needs a resolved checklist and no uncleared notes.
+    resolved_item = CompletionChecklistItem(
+        id=uuid.uuid4(),
+        created_at=now(),
+        updated_at=now(),
+        engagement_id=engagement.id,
+        item_key="going_concern",
+        category="Going concern",
+        title="Conclude on going concern",
+        isa_reference="ISA 570",
+        status="complete",
+        sort_order=0,
+    )
+    use_db(FakeSession(rows=[engagement, resolved_item]))
     async with client() as c:
         as_partner = await c.patch(
             f"/api/engagements/{engagement.id}/status",
