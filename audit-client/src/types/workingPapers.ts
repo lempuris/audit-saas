@@ -1,6 +1,8 @@
-export type WorkingPaperStatus = "draft" | "prepared";
+export type WorkingPaperStatus = "draft" | "prepared" | "reviewed" | "approved";
 
-export const WORKING_PAPER_STATUSES: WorkingPaperStatus[] = ["draft", "prepared"];
+// Statuses settable via the prep-status dropdown; reviewed/approved are reached
+// only through the sign-off workflow (signoffs endpoints).
+export const PREP_STATUSES: WorkingPaperStatus[] = ["draft", "prepared"];
 
 export interface WorkingPaperRecord {
   id: string;
