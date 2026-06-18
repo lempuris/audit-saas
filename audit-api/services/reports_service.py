@@ -22,7 +22,7 @@ from models.reports_models import (
     ReportStatus,
     ReportUpdate,
 )
-from services import audit_trail_service, report_template_seed
+from services import audit_trail_service, engagement_lock, report_template_seed
 
 ENTITY_TYPE = "engagement_report"
 
@@ -79,7 +79,7 @@ async def get_report(
 async def create_report(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, payload: ReportCreate
 ) -> ReportRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     existing = await _reports(session, engagement_id)
     if any(r.report_type == str(payload.report_type) for r in existing):
         raise HTTPException(
@@ -122,6 +122,7 @@ async def update_report(
     report_id: uuid.UUID,
     payload: ReportUpdate,
 ) -> ReportRecord:
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     report = await _get_report(session, engagement_id, report_id)
     is_partner = actor_role in (Role.PARTNER, Role.ADMIN)
 
@@ -165,6 +166,7 @@ async def update_report(
 async def delete_report(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, report_id: uuid.UUID
 ) -> None:
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     report = await _get_report(session, engagement_id, report_id)
     await session.delete(report)
     audit_trail_service.record(

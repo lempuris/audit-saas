@@ -437,6 +437,23 @@ class ReviewNote(BaseModel):
     cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class EngagementArchive(BaseModel):
+    """Archive/retention record written when an engagement is completed. Marks
+    the point the file was locked (ISA 230): who archived it, when, and the
+    retention period and resulting retention-until date. One per engagement."""
+
+    __tablename__ = "engagement_archives"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), unique=True, index=True, nullable=False
+    )
+    archived_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+    archived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retention_years: Mapped[int] = mapped_column(Integer, nullable=False)
+    retention_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
 class EngagementReport(BaseModel):
     """An ISA-compliant report for an engagement: the audit report (ISA
     700/705/706 opinion templates) or a management letter. Created from the
