@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ report.title }}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 2.2cm 2cm;
+        @bottom-center {
+          content: "Page " counter(page) " of " counter(pages);
+          font-size: 9px;
+          color: #64748b;
+        }
+      }
+      body {
+        font-family: "DejaVu Serif", "Times New Roman", serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #0f172a;
+      }
+      .letterhead {
+        white-space: pre-wrap;
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        font-size: 9pt;
+        color: #334155;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+      }
+      h1.title {
+        font-size: 16pt;
+        text-align: center;
+        margin: 0 0 6px;
+      }
+      .draft-flag {
+        text-align: center;
+        color: #b45309;
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        font-size: 9pt;
+        letter-spacing: 2px;
+        margin-bottom: 18px;
+      }
+      section.report-section {
+        margin-top: 16px;
+      }
+      h2.heading {
+        font-size: 12pt;
+        margin: 0 0 4px;
+      }
+      .body {
+        white-space: pre-wrap;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="letterhead">{{ report.letterhead }}</div>
+
+    <h1 class="title">{{ report.title }}</h1>
+    {% if is_draft %}<p class="draft-flag">DRAFT — NOT FOR ISSUE</p>{% endif %}
+
+    {% for section in report.sections %}
+    <section class="report-section">
+      <h2 class="heading">{{ section.heading }}</h2>
+      <p class="body">{{ section.body }}</p>
+    </section>
+    {% endfor %}
+  </body>
+</html>

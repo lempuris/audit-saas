@@ -1,14 +1,14 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.session import get_db
 from middleware.auth import require_roles
 from models.auth_models import AuthenticatedUser, Role
 from models.reports_models import ReportCreate, ReportRecord, ReportUpdate
-from services import reports_service
+from services import pdf_service, reports_service
 
 router = APIRouter(prefix="/api/engagements/{engagement_id}/reports", tags=["reports"])
 
@@ -45,6 +45,21 @@ async def get_report(
     engagement_id: uuid.UUID, report_id: uuid.UUID, _user: Reader, db: Db
 ) -> ReportRecord:
     return await reports_service.get_report(db, engagement_id, report_id)
+
+
+@router.get("/{report_id}/pdf")
+async def report_pdf(
+    engagement_id: uuid.UUID, report_id: uuid.UUID, _user: Reader, db: Db
+) -> Response:
+    report = await reports_service.get_report(db, engagement_id, report_id)
+    pdf = pdf_service.render_report_pdf(report)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{pdf_service.pdf_filename(report)}"'
+        },
+    )
 
 
 @router.patch("/{report_id}", response_model=ReportRecord)
