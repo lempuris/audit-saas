@@ -2,16 +2,21 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from models.trial_balance_models import FSArea
 
 
 class WorkingPaperStatus(StrEnum):
-    """Preparation status. The reviewed/approved sign-off workflow is Phase 4."""
+    """Full working-paper lifecycle. draft<->prepared are set via the status
+    endpoint; reviewed/approved are reached only through the sign-off workflow
+    (signoffs_service), which also returns an approved/reviewed paper to
+    prepared."""
 
     DRAFT = "draft"
     PREPARED = "prepared"
+    REVIEWED = "reviewed"
+    APPROVED = "approved"
 
 
 class WorkingPaperCreate(BaseModel):
@@ -38,6 +43,14 @@ class WorkingPaperUpdate(BaseModel):
 
 class WorkingPaperStatusUpdate(BaseModel):
     status: WorkingPaperStatus
+
+    @field_validator("status")
+    @classmethod
+    def _only_preparation(cls, value: WorkingPaperStatus) -> WorkingPaperStatus:
+        # reviewed/approved are reached only via the sign-off endpoint.
+        if value not in (WorkingPaperStatus.DRAFT, WorkingPaperStatus.PREPARED):
+            raise ValueError("Use the sign-off endpoint to review or approve a working paper")
+        return value
 
 
 class WorkingPaperRecord(BaseModel):
