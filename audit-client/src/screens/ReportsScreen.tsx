@@ -120,6 +120,26 @@ export default function ReportsScreen() {
     void run(() => api.delete(`${base}/${report.id}`), "Report deleted");
   }
 
+  async function downloadPdf(report: ReportRecord) {
+    setBusy(true);
+    setError(null);
+    try {
+      const blob = await api.getBlob(`${base}/${report.id}/pdf`);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${report.report_type}-${report.id}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!loaded && !error) {
     return <p className="text-slate-500">Loading…</p>;
   }
@@ -198,13 +218,23 @@ export default function ReportsScreen() {
                 {reportTypeLabel(report.report_type)}
                 {report.opinion_type ? ` · ${report.opinion_type}` : ""}
               </h3>
-              <span
-                className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${
-                  isFinal ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"
-                }`}
-              >
-                {report.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${
+                    isFinal ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {report.status}
+                </span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => downloadPdf(report)}
+                  className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Download PDF
+                </button>
+              </div>
             </div>
 
             {draft && (
