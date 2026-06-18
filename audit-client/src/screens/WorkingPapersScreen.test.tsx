@@ -174,4 +174,80 @@ describe("WorkingPapersScreen", () => {
 
     expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
   });
+
+  function mockPaper(status: WorkingPaperRecord["status"]) {
+    const withStatus = { ...paper, status };
+    apiMock.get.mockImplementation((path: string) => {
+      if (path.endsWith("/versions")) return Promise.resolve([version]);
+      if (path.includes("/trial-balance")) return Promise.resolve({ lines: [] });
+      if (path.includes("/documents")) return Promise.resolve([]);
+      if (path.includes("/cross-references")) return Promise.resolve([]);
+      if (path.includes("/review-notes")) return Promise.resolve([]);
+      if (path === `/api/engagements/${engagementId}`) return Promise.resolve({ team: [] });
+      return Promise.resolve([withStatus]);
+    });
+  }
+
+  it("manager reviews a prepared paper via the sign-off endpoint", async () => {
+    meState.me = { user_id: "user_2", session_id: null, role: "manager" };
+    mockPaper("prepared");
+    renderScreen();
+    await screen.findByText("Bank reconciliation");
+
+    fireEvent.click(screen.getByRole("button", { name: "Mark reviewed" }));
+
+    await waitFor(() =>
+      expect(apiMock.post).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/working-papers/${paper.id}/sign-off`,
+        { action: "review" },
+      ),
+    );
+  });
+
+  it("hides sign-off actions from auditors", async () => {
+    meState.me = { user_id: "user_1", session_id: null, role: "auditor" };
+    mockPaper("prepared");
+    renderScreen();
+    await screen.findByText("Bank reconciliation");
+
+    expect(screen.queryByRole("button", { name: "Mark reviewed" })).not.toBeInTheDocument();
+  });
+
+  it("partner approves a reviewed paper", async () => {
+    meState.me = { user_id: "user_3", session_id: null, role: "partner" };
+    mockPaper("reviewed");
+    renderScreen();
+    await screen.findByText("Bank reconciliation");
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() =>
+      expect(apiMock.post).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/working-papers/${paper.id}/sign-off`,
+        { action: "approve" },
+      ),
+    );
+  });
+
+  it("locks an approved paper from editing and offers Return", async () => {
+    meState.me = { user_id: "user_3", session_id: null, role: "partner" };
+    mockPaper("approved");
+    renderScreen();
+    await screen.findByText("Bank reconciliation");
+
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Return" })).toBeInTheDocument();
+  });
+
+  it("offers an FS-area review sign-off once every paper is reviewed", async () => {
+    meState.me = { user_id: "user_2", session_id: null, role: "manager" };
+    mockPaper("reviewed");
+    renderScreen();
+    await screen.findByText("Bank reconciliation");
+
+    expect(
+      screen.getByRole("button", { name: "Sign off area (review)" }),
+    ).toBeInTheDocument();
+  });
 });

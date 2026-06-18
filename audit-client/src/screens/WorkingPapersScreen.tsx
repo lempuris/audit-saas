@@ -14,12 +14,24 @@ import {
   type TrialBalanceDetail,
   type TrialBalanceLineRecord,
 } from "../types/trialBalance";
+import type { SignoffAction } from "../types/signoffs";
 import {
-  WORKING_PAPER_STATUSES,
+  PREP_STATUSES,
   type WorkingPaperRecord,
   type WorkingPaperStatus,
   type WorkingPaperVersionRecord,
 } from "../types/workingPapers";
+
+const STATUS_BADGE: Record<WorkingPaperStatus, string> = {
+  draft: "bg-slate-100 text-slate-600",
+  prepared: "bg-blue-100 text-blue-800",
+  reviewed: "bg-amber-100 text-amber-800",
+  approved: "bg-green-100 text-green-800",
+};
+
+function isLocked(status: WorkingPaperStatus): boolean {
+  return status === "reviewed" || status === "approved";
+}
 
 const EMPTY_NEW = {
   fs_area: "",
@@ -55,6 +67,9 @@ export default function WorkingPapersScreen() {
   const role = me?.role ?? null;
   const canWrite = role !== null; // all signed-in staff prepare working papers
   const canDelete = role === "admin" || role === "partner" || role === "manager";
+  // Reviewing/returning is Manager and above; approving is Partner/Admin.
+  const isReviewer = role === "admin" || role === "partner" || role === "manager";
+  const isApprover = role === "admin" || role === "partner";
 
   const [papers, setPapers] = useState<WorkingPaperRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -152,6 +167,23 @@ export default function WorkingPapersScreen() {
 
   function changeStatus(wp: WorkingPaperRecord, status: WorkingPaperStatus) {
     void run(() => api.patch(`${base}/${wp.id}/status`, { status }), "Status updated");
+  }
+
+  const SIGNOFF_NOTICE: Record<SignoffAction, string> = {
+    review: "Working paper reviewed",
+    approve: "Working paper approved",
+    return: "Working paper returned for changes",
+  };
+
+  function signOff(wp: WorkingPaperRecord, action: SignoffAction) {
+    void run(() => api.post(`${base}/${wp.id}/sign-off`, { action }), SIGNOFF_NOTICE[action]);
+  }
+
+  function signOffArea(area: string, action: SignoffAction) {
+    void run(
+      () => api.post(`/api/engagements/${engagementId}/fs-areas/${area}/sign-off`, { action }),
+      action === "approve" ? `${fsAreaLabel(area)} approved` : `${fsAreaLabel(area)} reviewed`,
+    );
   }
 
   function remove(wpId: string) {
@@ -295,7 +327,33 @@ export default function WorkingPapersScreen() {
 
       {byArea.map(([area, areaPapers]) => (
         <section key={area}>
-          <h3 className="mt-8 text-sm font-semibold text-slate-700">{fsAreaLabel(area)}</h3>
+          <div className="mt-8 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-700">{fsAreaLabel(area)}</h3>
+            {isReviewer && (
+              <div className="flex items-center gap-2">
+                {areaPapers.every((wp) => wp.status === "reviewed" || wp.status === "approved") && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => signOffArea(area, "review")}
+                    className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    Sign off area (review)
+                  </button>
+                )}
+                {isApprover && areaPapers.every((wp) => wp.status === "approved") && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => signOffArea(area, "approve")}
+                    className="rounded border border-green-300 px-2 py-1 text-xs text-green-700 hover:bg-green-50 disabled:opacity-50"
+                  >
+                    Sign off area (approve)
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="mt-2 space-y-3">
             {areaPapers.map((wp) => (
               <article key={wp.id} className="rounded border border-slate-200 bg-white p-4">
@@ -314,8 +372,8 @@ export default function WorkingPapersScreen() {
                         : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {canWrite ? (
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {canWrite && !isLocked(wp.status) ? (
                       <select
                         aria-label={`Status of ${wp.index_ref}`}
                         value={wp.status}
@@ -323,14 +381,48 @@ export default function WorkingPapersScreen() {
                         onChange={(e) => changeStatus(wp, e.target.value as WorkingPaperStatus)}
                         className="rounded border border-slate-300 bg-white px-2 py-1 text-xs capitalize"
                       >
-                        {WORKING_PAPER_STATUSES.map((status) => (
+                        {PREP_STATUSES.map((status) => (
                           <option key={status} value={status}>
                             {status}
                           </option>
                         ))}
                       </select>
                     ) : (
-                      <span className="text-xs capitalize text-slate-600">{wp.status}</span>
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[wp.status]}`}
+                      >
+                        {wp.status}
+                      </span>
+                    )}
+                    {isReviewer && wp.status === "prepared" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => signOff(wp, "review")}
+                        className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                      >
+                        Mark reviewed
+                      </button>
+                    )}
+                    {isApprover && wp.status === "reviewed" && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => signOff(wp, "approve")}
+                        className="rounded border border-green-300 px-2 py-1 text-xs text-green-700 hover:bg-green-50 disabled:opacity-50"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {isReviewer && isLocked(wp.status) && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => signOff(wp, "return")}
+                        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Return
+                      </button>
                     )}
                     <button
                       type="button"
@@ -419,7 +511,7 @@ export default function WorkingPapersScreen() {
                   </dl>
                 )}
 
-                {editId !== wp.id && (canWrite || canDelete) && (
+                {editId !== wp.id && (canWrite || canDelete) && !isLocked(wp.status) && (
                   <div className="mt-3 flex gap-2">
                     {canWrite && (
                       <button
