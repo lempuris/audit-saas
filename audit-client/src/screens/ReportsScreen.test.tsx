@@ -6,7 +6,14 @@ import type { Me } from "../types/me";
 import type { ReportRecord } from "../types/reports";
 import ReportsScreen from "./ReportsScreen";
 
-const apiMock = { get: vi.fn(), post: vi.fn(), patch: vi.fn(), put: vi.fn(), delete: vi.fn() };
+const apiMock = {
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+  getBlob: vi.fn(),
+};
 const meState: { me: Me | null } = { me: null };
 
 vi.mock("../hooks/useApi", () => ({
@@ -124,6 +131,31 @@ describe("ReportsScreen", () => {
 
     expect(screen.getByLabelText("Body for opinion")).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+  });
+
+  it("downloads a report PDF with the auth-bearing client", async () => {
+    const created: string[] = [];
+    URL.createObjectURL = vi.fn(() => {
+      created.push("blob:fake");
+      return "blob:fake";
+    });
+    URL.revokeObjectURL = vi.fn();
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    apiMock.getBlob.mockResolvedValue(new Blob(["%PDF"], { type: "application/pdf" }));
+
+    renderScreen();
+    await screen.findByText(/Audit report/);
+    fireEvent.click(screen.getByRole("button", { name: "Download PDF" }));
+
+    await waitFor(() =>
+      expect(apiMock.getBlob).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/reports/${auditReport.id}/pdf`,
+      ),
+    );
+    expect(created).toHaveLength(1);
+    clickSpy.mockRestore();
   });
 
   it("hides create controls from auditors", async () => {
