@@ -174,6 +174,16 @@ export default function EngagementDetailScreen() {
             Completion checklist (ISA 220/700)
           </h3>
           <CompletionChecklistPanel engagementId={engagementId ?? ""} canManage={canWrite} />
+
+          <h3 className="mt-8 text-sm font-semibold text-slate-700">Reporting</h3>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link
+              to={`/engagements/${engagementId}/reports`}
+              className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              Reports (ISA 700/705/706)
+            </Link>
+          </div>
         </>
       )}
 
