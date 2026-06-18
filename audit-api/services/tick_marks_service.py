@@ -29,7 +29,7 @@ from models.tick_marks_models import (
     TickMarkCreate,
     TickMarkRecord,
 )
-from services import audit_trail_service
+from services import audit_trail_service, engagement_lock
 
 LIBRARY_ENTITY = "tick_mark"
 APPLICATION_ENTITY = "tick_mark_application"
@@ -179,7 +179,7 @@ async def apply_tick_mark(
     engagement_id: uuid.UUID,
     payload: TickMarkApplicationCreate,
 ) -> TickMarkApplicationRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     marks = await _marks_by_id(session)
     if payload.tick_mark_id not in marks:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tick mark not found")
@@ -228,7 +228,7 @@ async def apply_tick_mark(
 async def remove_application(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, application_id: uuid.UUID
 ) -> None:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     application = (
         await session.scalars(
             select(TickMarkApplication).where(TickMarkApplication.id == application_id)

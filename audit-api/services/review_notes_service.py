@@ -21,7 +21,7 @@ from models.review_notes_models import (
     ReviewNoteRecord,
     ReviewNoteRespond,
 )
-from services import audit_trail_service
+from services import audit_trail_service, engagement_lock
 
 ENTITY_TYPE = "review_note"
 _REVIEWER_ROLES = {Role.ADMIN, Role.PARTNER, Role.MANAGER}
@@ -104,7 +104,7 @@ async def list_for_user(
 async def raise_note(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, payload: ReviewNoteCreate
 ) -> ReviewNoteRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     if payload.working_paper_id is not None:
         wp = (
             await session.scalars(
@@ -148,7 +148,7 @@ async def respond(
     note_id: uuid.UUID,
     payload: ReviewNoteRespond,
 ) -> ReviewNoteRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     note = await _get_note(session, engagement_id, note_id)
     if note.status == "cleared":
         raise HTTPException(
@@ -180,7 +180,7 @@ async def clear_note(
     engagement_id: uuid.UUID,
     note_id: uuid.UUID,
 ) -> ReviewNoteRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     note = await _get_note(session, engagement_id, note_id)
 
     if user.role not in _REVIEWER_ROLES and note.raised_by != user.user_id:
@@ -214,7 +214,7 @@ async def delete_note(
     engagement_id: uuid.UUID,
     note_id: uuid.UUID,
 ) -> None:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     note = await _get_note(session, engagement_id, note_id)
     if user.role not in _REVIEWER_ROLES and note.raised_by != user.user_id:
         raise HTTPException(

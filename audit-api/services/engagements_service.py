@@ -26,7 +26,7 @@ from models.engagements_models import (
     TeamMemberAdd,
     TeamMemberRecord,
 )
-from services import audit_trail_service, completion_service
+from services import archive_service, audit_trail_service, completion_service
 from utils.naming import display_name
 
 ENTITY_TYPE = "engagement"
@@ -212,6 +212,12 @@ async def change_status(
         before=before,
         after=_snapshot(engagement),
     )
+    # Completing archives the file (retention metadata), atomically with the
+    # status change.
+    if target == EngagementStatus.COMPLETED:
+        await archive_service.archive_on_completion(
+            session, actor=user.user_id, engagement_id=engagement_id
+        )
     await session.commit()
     await session.refresh(engagement)
     return EngagementRecord.model_validate(engagement)

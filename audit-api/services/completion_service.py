@@ -23,7 +23,7 @@ from models.completion_models import (
     ChecklistItemUpdate,
     CompletionReadiness,
 )
-from services import audit_trail_service
+from services import audit_trail_service, engagement_lock
 from utils.naming import display_name
 
 ENTITY_TYPE = "completion_checklist_item"
@@ -165,7 +165,7 @@ async def seed_standard(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID
 ) -> list[ChecklistItemRecord]:
     """Add any standard items the engagement is missing (idempotent)."""
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     existing = {i.item_key for i in await _items(session, engagement_id)}
     added = 0
     for order, spec in enumerate(STANDARD_ITEMS):
@@ -205,6 +205,7 @@ async def update_item(
     item_id: uuid.UUID,
     payload: ChecklistItemUpdate,
 ) -> ChecklistItemRecord:
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     item = next((i for i in await _items(session, engagement_id) if i.id == item_id), None)
     if item is None:
         raise HTTPException(
