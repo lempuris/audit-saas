@@ -9,6 +9,7 @@ describe("navItemsForRole", () => {
   it("shows everything to admins", () => {
     expect(labels("admin")).toEqual([
       "Dashboard",
+      "Firm dashboard",
       "Clients",
       "Engagements",
       "Audit trail",
@@ -17,11 +18,22 @@ describe("navItemsForRole", () => {
   });
 
   it("shows the audit trail but not users to partners", () => {
-    expect(labels("partner")).toEqual(["Dashboard", "Clients", "Engagements", "Audit trail"]);
+    expect(labels("partner")).toEqual([
+      "Dashboard",
+      "Firm dashboard",
+      "Clients",
+      "Engagements",
+      "Audit trail",
+    ]);
   });
 
-  it("hides admin-only items from managers and auditors", () => {
-    expect(labels("manager")).toEqual(["Dashboard", "Clients", "Engagements"]);
+  it("shows the firm dashboard to managers but hides admin-only items", () => {
+    expect(labels("manager")).toEqual([
+      "Dashboard",
+      "Firm dashboard",
+      "Clients",
+      "Engagements",
+    ]);
     expect(labels("auditor")).toEqual(["Dashboard", "Clients", "Engagements"]);
   });
 

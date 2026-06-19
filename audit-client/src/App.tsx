@@ -11,6 +11,7 @@ import ClientsScreen from "./screens/ClientsScreen";
 import DocumentsScreen from "./screens/DocumentsScreen";
 import EngagementDetailScreen from "./screens/EngagementDetailScreen";
 import EngagementsScreen from "./screens/EngagementsScreen";
+import FirmDashboardScreen from "./screens/FirmDashboardScreen";
 import HomeScreen from "./screens/HomeScreen";
 import LeadSchedulesScreen from "./screens/LeadSchedulesScreen";
 import MaterialityScreen from "./screens/MaterialityScreen";
@@ -34,6 +35,14 @@ export default function App() {
             <Routes>
               <Route element={<Layout />}>
                 <Route index element={<HomeScreen />} />
+                <Route
+                  path="firm-dashboard"
+                  element={
+                    <RequireRole roles={["admin", "partner", "manager"]}>
+                      <FirmDashboardScreen />
+                    </RequireRole>
+                  }
+                />
                 <Route path="clients" element={<ClientsScreen />} />
                 <Route path="clients/:clientId" element={<ClientDetailScreen />} />
                 <Route path="engagements" element={<EngagementsScreen />} />
