@@ -66,6 +66,20 @@ export class ApiClient {
     return this.request<T>(path);
   }
 
+  /** Fetch a binary response (e.g. a PDF) with the auth token attached. */
+  async getBlob(path: string): Promise<Blob> {
+    const token = await this.getToken();
+    const headers = new Headers();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    const response = await fetch(`${this.baseUrl}${path}`, { headers });
+    if (!response.ok) {
+      throw new ApiError(response.status, await response.text());
+    }
+    return response.blob();
+  }
+
   post<T>(path: string, body?: unknown): Promise<T> {
     return this.request<T>(path, {
       method: "POST",

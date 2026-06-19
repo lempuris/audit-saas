@@ -26,7 +26,7 @@ from models.engagements_models import (
     TeamMemberAdd,
     TeamMemberRecord,
 )
-from services import audit_trail_service
+from services import archive_service, audit_trail_service, completion_service
 from utils.naming import display_name
 
 ENTITY_TYPE = "engagement"
@@ -177,11 +177,14 @@ async def change_status(
             detail=f"Cannot move engagement from '{current}' to '{target}'",
         )
 
-    if target == EngagementStatus.COMPLETED and user.role not in (Role.ADMIN, Role.PARTNER):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only a Partner or Admin can complete an engagement",
-        )
+    if target == EngagementStatus.COMPLETED:
+        if user.role not in (Role.ADMIN, Role.PARTNER):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only a Partner or Admin can complete an engagement",
+            )
+        # ISA file-completion gate: no open checklist items, no uncleared notes.
+        await completion_service.assert_ready_to_complete(session, engagement_id)
 
     if target == EngagementStatus.FIELDWORK and current == EngagementStatus.PLANNING:
         team = await _team(session, engagement_id)
@@ -209,6 +212,12 @@ async def change_status(
         before=before,
         after=_snapshot(engagement),
     )
+    # Completing archives the file (retention metadata), atomically with the
+    # status change.
+    if target == EngagementStatus.COMPLETED:
+        await archive_service.archive_on_completion(
+            session, actor=user.user_id, engagement_id=engagement_id
+        )
     await session.commit()
     await session.refresh(engagement)
     return EngagementRecord.model_validate(engagement)

@@ -19,7 +19,7 @@ from database.models import (
     WorkingPaper,
 )
 from models.cross_references_models import CrossReferenceCreate, CrossReferenceRecord
-from services import audit_trail_service
+from services import audit_trail_service, engagement_lock
 
 ENTITY_TYPE = "cross_reference"
 
@@ -100,7 +100,7 @@ async def list_cross_references(
 async def create_cross_reference(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, payload: CrossReferenceCreate
 ) -> CrossReferenceRecord:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     maps = await _label_maps(session, engagement_id)
 
     if _label(maps, str(payload.source_type), payload.source_id) is None:
@@ -159,7 +159,7 @@ async def create_cross_reference(
 async def delete_cross_reference(
     session: AsyncSession, *, actor: str, engagement_id: uuid.UUID, reference_id: uuid.UUID
 ) -> None:
-    await _get_engagement(session, engagement_id)
+    engagement_lock.require_open(await _get_engagement(session, engagement_id))
     ref = (
         await session.scalars(select(CrossReference).where(CrossReference.id == reference_id))
     ).first()

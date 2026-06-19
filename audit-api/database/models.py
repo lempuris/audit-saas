@@ -437,6 +437,75 @@ class ReviewNote(BaseModel):
     cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class EngagementArchive(BaseModel):
+    """Archive/retention record written when an engagement is completed. Marks
+    the point the file was locked (ISA 230): who archived it, when, and the
+    retention period and resulting retention-until date. One per engagement."""
+
+    __tablename__ = "engagement_archives"
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), unique=True, index=True, nullable=False
+    )
+    archived_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+    archived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retention_years: Mapped[int] = mapped_column(Integer, nullable=False)
+    retention_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class EngagementReport(BaseModel):
+    """An ISA-compliant report for an engagement: the audit report (ISA
+    700/705/706 opinion templates) or a management letter. Created from the
+    standard template library with editable sections (stored as an ordered list
+    of {key, heading, body}); the firm letterhead is editable text. One report
+    of each type per engagement. PDF rendering is Phase 4 feature 4. A finalized
+    report (status 'final') is editable only by a Partner/Admin."""
+
+    __tablename__ = "engagement_reports"
+    __table_args__ = (UniqueConstraint("engagement_id", "report_type"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    report_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # audit_report / management_letter
+    # Opinion type for an audit report; null for a management letter.
+    opinion_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    letterhead: Mapped[str] = mapped_column(String, nullable=False)
+    # Ordered editable sections: [{"key": ..., "heading": ..., "body": ...}]
+    sections: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="draft")  # draft / final
+    created_by: Mapped[str] = mapped_column(String, nullable=False)  # Clerk user id
+
+
+class CompletionChecklistItem(BaseModel):
+    """An ISA-mapped completion checklist item for an engagement (file
+    completion, ISA 220/700). Seeded from a standard library (idempotent by
+    item_key); each item is resolved as complete or not_applicable before the
+    engagement can close. The completion gate (engagements_service) blocks the
+    review -> completed transition while any item is open or any review note is
+    uncleared."""
+
+    __tablename__ = "completion_checklist_items"
+    __table_args__ = (UniqueConstraint("engagement_id", "item_key"),)
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True
+    )
+    item_key: Mapped[str] = mapped_column(String, nullable=False)
+    category: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    isa_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="open", index=True)
+    note: Mapped[str | None] = mapped_column(String, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String, nullable=True)  # Clerk user id
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
 class Signoff(BaseModel):
     """Immutable sign-off event (ISA 220): a working paper or an FS area is
     reviewed (Manager and above) or approved (Partner/Admin), or a working
