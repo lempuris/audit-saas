@@ -14,6 +14,7 @@ from routers import (
     cross_references_router,
     documents_router,
     engagements_router,
+    firm_dashboard_router,
     health_router,
     materiality_router,
     planning_router,
@@ -70,3 +71,4 @@ app.include_router(signoffs_router.router)
 app.include_router(completion_router.router)
 app.include_router(reports_router.router)
 app.include_router(archive_router.router)
+app.include_router(firm_dashboard_router.router)
