@@ -118,6 +118,33 @@ describe("EngagementDetailScreen", () => {
     );
   });
 
+  it("shows an archived banner with retention for a completed engagement", async () => {
+    const completed = { ...engagement, status: "completed" as const };
+    apiMock.get.mockImplementation((path: string) => {
+      if (path.endsWith("/archive")) {
+        return Promise.resolve({
+          id: "a1",
+          engagement_id: engagement.id,
+          archived_by: "user_p",
+          archived_at: "2026-06-19T10:00:00Z",
+          retention_years: 7,
+          retention_until: "2033-06-19T10:00:00Z",
+          note: null,
+          created_at: "2026-06-19T10:00:00Z",
+          archived_by_name: "Pat Partner",
+        });
+      }
+      if (path === `/api/engagements/${engagement.id}`) return Promise.resolve(completed);
+      if (path.startsWith("/api/clients/")) return Promise.reject(new Error("no client"));
+      return Promise.resolve([]);
+    });
+    renderScreen();
+
+    expect(await screen.findByText(/Archived & read-only/)).toBeInTheDocument();
+    expect(screen.getByText(/Retain until/)).toBeInTheDocument();
+    expect(screen.getByText(/Pat Partner/)).toBeInTheDocument();
+  });
+
   it("hides write controls from auditors", async () => {
     meState.me = { user_id: "user_other", session_id: null, role: "auditor" };
     renderScreen();
