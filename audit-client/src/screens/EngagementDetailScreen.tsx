@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import CompletionChecklistPanel from "../components/CompletionChecklistPanel";
 import { useMe } from "../contexts/MeContext";
 import { useApi } from "../hooks/useApi";
+import type { ArchiveRecord } from "../types/archive";
 import type { ClientRecord } from "../types/clients";
 import type { PlanningSummary } from "../types/planning";
 import {
@@ -23,6 +24,7 @@ export default function EngagementDetailScreen() {
   const [engagement, setEngagement] = useState<EngagementDetail | null>(null);
   const [client, setClient] = useState<ClientRecord | null>(null);
   const [planning, setPlanning] = useState<PlanningSummary | null>(null);
+  const [archive, setArchive] = useState<ArchiveRecord | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -41,6 +43,12 @@ export default function EngagementDetailScreen() {
           .get<ClientRecord>(`/api/clients/${row.client_id}`)
           .then(setClient)
           .catch(() => setClient(null));
+        if (row.status === "completed") {
+          api
+            .get<ArchiveRecord | null>(`/api/engagements/${engagementId}/archive`)
+            .then(setArchive)
+            .catch(() => setArchive(null));
+        }
       })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
     api
@@ -147,6 +155,15 @@ export default function EngagementDetailScreen() {
           {engagement.status}
         </span>
       </p>
+
+      {archive && (
+        <div className="mt-4 rounded border border-slate-300 bg-slate-50 p-3 text-sm text-slate-700">
+          <span className="font-medium">Archived &amp; read-only.</span> Completed{" "}
+          {new Date(archive.archived_at).toLocaleDateString()}
+          {archive.archived_by_name ? ` by ${archive.archived_by_name}` : ""}. Retain until{" "}
+          {new Date(archive.retention_until).toLocaleDateString()} ({archive.retention_years} years).
+        </div>
+      )}
 
       {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
       {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
