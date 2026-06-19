@@ -9,6 +9,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", to: "/", roles: "any" },
+  { label: "Firm dashboard", to: "/firm-dashboard", roles: ["admin", "partner", "manager"] },
   { label: "Clients", to: "/clients", roles: "any" },
   { label: "Engagements", to: "/engagements", roles: "any" },
   { label: "Audit trail", to: "/audit-trail", roles: ["admin", "partner"] },
