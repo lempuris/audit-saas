@@ -167,14 +167,18 @@ async def test_manager_edits_sections_and_title() -> None:
 
 
 @pytest.mark.unit
-async def test_changing_opinion_regenerates_opinion_sections() -> None:
+async def test_changing_opinion_relabels_headings_keeps_bodies() -> None:
     engagement = make_engagement()
     report = make_report(
         engagement.id,
         opinion_type="unmodified",
         sections=[
-            {"key": "opinion", "heading": "Opinion", "body": "old opinion body"},
-            {"key": "basis_for_opinion", "heading": "Basis for Opinion", "body": "old basis"},
+            {"key": "opinion", "heading": "Opinion", "body": "the firm's opinion body"},
+            {
+                "key": "basis_for_opinion",
+                "heading": "Basis for Opinion",
+                "body": "the firm's basis",
+            },
             {"key": "signature", "heading": "Signature", "body": "kept as edited"},
         ],
     )
@@ -189,10 +193,11 @@ async def test_changing_opinion_regenerates_opinion_sections() -> None:
     body = response.json()
     assert body["opinion_type"] == "adverse"
     sections = {s["key"]: s for s in body["sections"]}
+    # Headings follow the new opinion; bodies are left as the firm edited them.
     assert sections["opinion"]["heading"] == "Adverse Opinion"
-    assert "do not present fairly" in sections["opinion"]["body"]
+    assert sections["opinion"]["body"] == "the firm's opinion body"
     assert sections["basis_for_opinion"]["heading"] == "Basis for Adverse Opinion"
-    # Non-opinion sections keep the firm's edits.
+    assert sections["basis_for_opinion"]["body"] == "the firm's basis"
     assert sections["signature"]["body"] == "kept as edited"
 
 

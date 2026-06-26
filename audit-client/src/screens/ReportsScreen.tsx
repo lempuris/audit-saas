@@ -290,8 +290,9 @@ export default function ReportsScreen() {
                     </select>
                     {draft.opinion !== report.opinion_type && (
                       <span className="mt-1 text-xs text-amber-700">
-                        Saving will replace the Opinion and Basis for Opinion sections with the
-                        standard wording for a {draft.opinion} opinion.
+                        Saving will relabel the Opinion and Basis for Opinion headings for a{" "}
+                        {draft.opinion} opinion; your section text is kept — update the wording to
+                        match.
                       </span>
                     )}
                   </label>
