@@ -220,6 +220,18 @@ def standard_sections(report_type: str, opinion_type: str | None) -> list[dict[s
     return _audit_report_sections(opinion_type or "unmodified")
 
 
+def opinion_headings(opinion_type: str) -> dict[str, str]:
+    """The opinion-driven section headings (Opinion, Basis for Opinion) for an
+    opinion type, keyed by section key — used to relabel those sections when the
+    opinion changes on an existing report. The bodies are left as the firm has
+    edited them.
+    """
+    return {
+        "opinion": _OPINION_HEADINGS[opinion_type],
+        "basis_for_opinion": _BASIS_HEADINGS[opinion_type],
+    }
+
+
 def default_title(report_type: str) -> str:
     if report_type == "management_letter":
         return "Management Letter"

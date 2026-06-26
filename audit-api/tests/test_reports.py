@@ -167,6 +167,55 @@ async def test_manager_edits_sections_and_title() -> None:
 
 
 @pytest.mark.unit
+async def test_changing_opinion_relabels_headings_keeps_bodies() -> None:
+    engagement = make_engagement()
+    report = make_report(
+        engagement.id,
+        opinion_type="unmodified",
+        sections=[
+            {"key": "opinion", "heading": "Opinion", "body": "the firm's opinion body"},
+            {
+                "key": "basis_for_opinion",
+                "heading": "Basis for Opinion",
+                "body": "the firm's basis",
+            },
+            {"key": "signature", "heading": "Signature", "body": "kept as edited"},
+        ],
+    )
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "adverse"},
+            headers=bearer("manager"),
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["opinion_type"] == "adverse"
+    sections = {s["key"]: s for s in body["sections"]}
+    # Headings follow the new opinion; bodies are left as the firm edited them.
+    assert sections["opinion"]["heading"] == "Adverse Opinion"
+    assert sections["opinion"]["body"] == "the firm's opinion body"
+    assert sections["basis_for_opinion"]["heading"] == "Basis for Adverse Opinion"
+    assert sections["basis_for_opinion"]["body"] == "the firm's basis"
+    assert sections["signature"]["body"] == "kept as edited"
+
+
+@pytest.mark.unit
+async def test_changing_opinion_on_management_letter_is_400() -> None:
+    engagement = make_engagement()
+    report = make_report(engagement.id, report_type="management_letter", opinion_type=None)
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "qualified"},
+            headers=bearer("manager"),
+        )
+    assert response.status_code == 400
+
+
+@pytest.mark.unit
 async def test_manager_cannot_finalize() -> None:
     engagement = make_engagement()
     report = make_report(engagement.id)

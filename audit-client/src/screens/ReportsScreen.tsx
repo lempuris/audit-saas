@@ -11,12 +11,18 @@ import {
   type ReportSection,
 } from "../types/reports";
 
-type Draft = { title: string; letterhead: string; sections: ReportSection[] };
+type Draft = {
+  title: string;
+  letterhead: string;
+  opinion: OpinionType | null;
+  sections: ReportSection[];
+};
 
 function toDraft(report: ReportRecord): Draft {
   return {
     title: report.title,
     letterhead: report.letterhead,
+    opinion: report.opinion_type,
     sections: report.sections.map((s) => ({ ...s })),
   };
 }
@@ -103,6 +109,9 @@ export default function ReportsScreen() {
           title: draft.title,
           letterhead: draft.letterhead,
           sections: draft.sections,
+          // Audit reports only; the backend regenerates the Opinion and Basis
+          // sections when this differs from the saved opinion.
+          ...(draft.opinion ? { opinion_type: draft.opinion } : {}),
         }),
       "Report saved",
     );
@@ -260,6 +269,34 @@ export default function ReportsScreen() {
                     className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 font-mono text-xs disabled:bg-slate-50"
                   />
                 </label>
+
+                {report.report_type === "audit_report" && (
+                  <label className="flex flex-col text-sm text-slate-600">
+                    Type of opinion
+                    <select
+                      aria-label="Type of opinion"
+                      value={draft.opinion ?? "unmodified"}
+                      disabled={!editable}
+                      onChange={(e) =>
+                        patchDraft(report.id, { opinion: e.target.value as OpinionType })
+                      }
+                      className="mt-1 w-44 rounded border border-slate-300 bg-white px-2 py-1.5 capitalize disabled:bg-slate-50"
+                    >
+                      {OPINION_TYPES.map((opinion) => (
+                        <option key={opinion} value={opinion}>
+                          {opinion}
+                        </option>
+                      ))}
+                    </select>
+                    {draft.opinion !== report.opinion_type && (
+                      <span className="mt-1 text-xs text-amber-700">
+                        Saving will relabel the Opinion and Basis for Opinion headings for a{" "}
+                        {draft.opinion} opinion; your section text is kept — update the wording to
+                        match.
+                      </span>
+                    )}
+                  </label>
+                )}
 
                 {draft.sections.map((section, index) => (
                   <div key={section.key} className="rounded border border-slate-100 p-3">

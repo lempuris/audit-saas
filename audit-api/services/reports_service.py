@@ -20,6 +20,7 @@ from models.reports_models import (
     ReportCreate,
     ReportRecord,
     ReportStatus,
+    ReportType,
     ReportUpdate,
 )
 from services import audit_trail_service, engagement_lock, report_template_seed
@@ -148,6 +149,26 @@ async def update_report(
         report.status = str(payload.status)
     if payload.sections is not None:
         report.sections = [s.model_dump() for s in payload.sections]
+
+    # Changing the opinion type relabels the opinion-driven sections (Opinion +
+    # Basis for Opinion) to the ISA 700/705/706 heading for the new opinion. The
+    # section bodies are left as the firm has edited them. Opinion does not apply
+    # to a management letter.
+    new_opinion = str(payload.opinion_type) if payload.opinion_type else None
+    if new_opinion is not None and new_opinion != report.opinion_type:
+        if report.report_type == str(ReportType.MANAGEMENT_LETTER):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="opinion_type does not apply to a management letter",
+            )
+        report.opinion_type = new_opinion
+        headings = report_template_seed.opinion_headings(new_opinion)
+        report.sections = [
+            {**section, "heading": headings[section["key"]]}
+            if section["key"] in headings
+            else section
+            for section in report.sections
+        ]
 
     audit_trail_service.record(
         session,
