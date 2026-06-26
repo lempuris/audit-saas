@@ -330,19 +330,48 @@ review note.
 
 **Goal:** Close the audit: sign-offs, completion checklist, ISA-compliant report.
 
-- [ ] **Sign-off workflow**: prepared → reviewed (Manager) → approved (Partner) per
+- [x] **Sign-off workflow**: prepared → reviewed (Manager) → approved (Partner) per
       working paper and per FS area; sign-offs immutable with timestamp
-- [ ] **Completion checklist**: ISA-mapped (subsequent events, going concern,
+      (API PR #57, screen — "Phase 4 (1/6)")
+- [x] **Completion checklist**: ISA-mapped (subsequent events, going concern,
       management representations, …); engagement cannot close with open items or
-      uncleared review notes
-- [ ] **Report templates**: ISA 700/705/706 opinion templates (unmodified, qualified,
-      adverse, disclaimer) with firm letterhead, editable sections
-- [ ] **PDF generation** (WeasyPrint) of audit report and management letter
-- [ ] Engagement archive: lock all content at completion (read-only), retention metadata
-- [ ] Firm dashboard: engagements by status, review queue, overdue procedures
+      uncleared review notes ("Phase 4 (2/6)")
+- [x] **Report templates**: ISA 700/705/706 opinion templates (unmodified, qualified,
+      adverse, disclaimer) with firm letterhead, editable sections ("Phase 4 (3/6)")
+- [x] **PDF generation** (WeasyPrint) of audit report and management letter
+      ("Phase 4 (4/6)")
+- [x] Engagement archive: lock all content at completion (read-only), retention metadata
+      (PR #66, banner "Phase 4 (5/6)")
+- [x] Firm dashboard: engagements by status, review queue, overdue procedures
+      (API PR #67, screen PR #69)
+
+> **Phase 4 status (2026-06-26, merged & deployed — acceptance pending):** All
+> six features are in `master`. Sign-off API (PR #57) and archive/firm-dashboard
+> (PRs #66–#69) merged as numbered PRs; the remaining slices were committed
+> directly and are labelled `Phase 4 (n/6)` in the history (sign-off screen,
+> completion checklist API + screen, report templates API + screen, PDF
+> generation + Download button, archive read-only banner). Migrations 0015–0018
+> applied on deploy (sign_offs, completion_checklist, engagement_reports,
+> engagement_archives); single Alembic head 0018. New backend services/routers:
+> `signoffs`, `completion`, `reports` (+ `report_template_seed`, `pdf_service`),
+> `archive`, `firm_dashboard`; new screens: `ReportsScreen`, `FirmDashboardScreen`
+> (sign-offs and completion surface on the working-papers / engagement screens).
+> Backend pytest 239 passed, frontend vitest 108 passed, all lint/build gates
+> clean.
+>
+> **Acceptance — ⏳ to verify** end-to-end on the live app per
+> `docs/phase4-acceptance-demo.md` (sign off papers + FS areas → complete the ISA
+> checklist → write and finalise the audit report → generate PDFs → hit the close
+> gate, then archive read-only → confirm on the firm dashboard). The code is
+> complete; this walkthrough has not yet been signed off. Phase 5 should not begin
+> until it passes.
+>
+> Follow-up fix in flight: changing the opinion type on an existing report was
+> not possible (opinion was create-only) — draft PR #71.
 
 **Acceptance:** Demo engagement completes the full lifecycle — sign-offs at all
 levels, checklist done, final PDF generated, file archived and immutable.
+*(Code complete; end-to-end verification ⏳ pending — see status note above.)*
 
 ---
 
