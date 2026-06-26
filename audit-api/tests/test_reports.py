@@ -167,6 +167,50 @@ async def test_manager_edits_sections_and_title() -> None:
 
 
 @pytest.mark.unit
+async def test_changing_opinion_regenerates_opinion_sections() -> None:
+    engagement = make_engagement()
+    report = make_report(
+        engagement.id,
+        opinion_type="unmodified",
+        sections=[
+            {"key": "opinion", "heading": "Opinion", "body": "old opinion body"},
+            {"key": "basis_for_opinion", "heading": "Basis for Opinion", "body": "old basis"},
+            {"key": "signature", "heading": "Signature", "body": "kept as edited"},
+        ],
+    )
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "adverse"},
+            headers=bearer("manager"),
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["opinion_type"] == "adverse"
+    sections = {s["key"]: s for s in body["sections"]}
+    assert sections["opinion"]["heading"] == "Adverse Opinion"
+    assert "do not present fairly" in sections["opinion"]["body"]
+    assert sections["basis_for_opinion"]["heading"] == "Basis for Adverse Opinion"
+    # Non-opinion sections keep the firm's edits.
+    assert sections["signature"]["body"] == "kept as edited"
+
+
+@pytest.mark.unit
+async def test_changing_opinion_on_management_letter_is_400() -> None:
+    engagement = make_engagement()
+    report = make_report(engagement.id, report_type="management_letter", opinion_type=None)
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "qualified"},
+            headers=bearer("manager"),
+        )
+    assert response.status_code == 400
+
+
+@pytest.mark.unit
 async def test_manager_cannot_finalize() -> None:
     engagement = make_engagement()
     report = make_report(engagement.id)

@@ -47,6 +47,9 @@ class ReportUpdate(BaseModel):
     letterhead: str | None = None
     status: ReportStatus | None = None
     sections: list[ReportSection] | None = None
+    # Changing the opinion on an existing audit report; regenerates the
+    # opinion-driven sections. Not applicable to a management letter.
+    opinion_type: OpinionType | None = None
 
 
 class ReportRecord(BaseModel):

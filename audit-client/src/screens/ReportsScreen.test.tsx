@@ -100,6 +100,21 @@ describe("ReportsScreen", () => {
     );
   });
 
+  it("changes the opinion type and sends it on save", async () => {
+    renderScreen();
+    await screen.findByText(/Audit report/);
+
+    fireEvent.change(screen.getByLabelText("Type of opinion"), { target: { value: "adverse" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(apiMock.patch).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/reports/${auditReport.id}`,
+        expect.objectContaining({ opinion_type: "adverse" }),
+      ),
+    );
+  });
+
   it("hides finalize and delete from managers", async () => {
     renderScreen();
     await screen.findByText(/Audit report/);

@@ -220,6 +220,19 @@ def standard_sections(report_type: str, opinion_type: str | None) -> list[dict[s
     return _audit_report_sections(opinion_type or "unmodified")
 
 
+# Section keys whose standard ISA wording is determined by the opinion type;
+# these are regenerated when the opinion changes on an existing report.
+OPINION_DRIVEN_KEYS = ("opinion", "basis_for_opinion")
+
+
+def opinion_sections(opinion_type: str) -> dict[str, dict[str, str]]:
+    """The opinion-driven sections (Opinion, Basis for Opinion) for an opinion
+    type, keyed by section key — used to refresh them when the opinion changes.
+    """
+    sections = _audit_report_sections(opinion_type)
+    return {s["key"]: s for s in sections if s["key"] in OPINION_DRIVEN_KEYS}
+
+
 def default_title(report_type: str) -> str:
     if report_type == "management_letter":
         return "Management Letter"
