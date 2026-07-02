@@ -220,15 +220,21 @@ def standard_sections(report_type: str, opinion_type: str | None) -> list[dict[s
     return _audit_report_sections(opinion_type or "unmodified")
 
 
-def opinion_headings(opinion_type: str) -> dict[str, str]:
-    """The opinion-driven section headings (Opinion, Basis for Opinion) for an
-    opinion type, keyed by section key — used to relabel those sections when the
-    opinion changes on an existing report. The bodies are left as the firm has
-    edited them.
+# Section keys whose standard ISA wording (heading and body) is determined by
+# the opinion type; these are regenerated when the opinion changes on a report.
+OPINION_DRIVEN_KEYS = ("opinion", "basis_for_opinion")
+
+
+def opinion_sections(opinion_type: str) -> dict[str, dict[str, str]]:
+    """The opinion-driven sections (Opinion, Basis for Opinion) for an opinion
+    type, keyed by section key — used to regenerate their heading and standard
+    ISA 700/705/706 body wording when the opinion changes on an existing report.
     """
+    sections = _audit_report_sections(opinion_type)
     return {
-        "opinion": _OPINION_HEADINGS[opinion_type],
-        "basis_for_opinion": _BASIS_HEADINGS[opinion_type],
+        s["key"]: {"heading": s["heading"], "body": s["body"]}
+        for s in sections
+        if s["key"] in OPINION_DRIVEN_KEYS
     }
 
 
