@@ -167,7 +167,7 @@ async def test_manager_edits_sections_and_title() -> None:
 
 
 @pytest.mark.unit
-async def test_changing_opinion_relabels_headings_keeps_bodies() -> None:
+async def test_changing_opinion_regenerates_opinion_sections() -> None:
     engagement = make_engagement()
     report = make_report(
         engagement.id,
@@ -193,11 +193,13 @@ async def test_changing_opinion_relabels_headings_keeps_bodies() -> None:
     body = response.json()
     assert body["opinion_type"] == "adverse"
     sections = {s["key"]: s for s in body["sections"]}
-    # Headings follow the new opinion; bodies are left as the firm edited them.
+    # The Opinion and Basis for Opinion sections are regenerated (heading and
+    # body) to the standard ISA wording for the new opinion.
     assert sections["opinion"]["heading"] == "Adverse Opinion"
-    assert sections["opinion"]["body"] == "the firm's opinion body"
+    assert "do not present fairly" in sections["opinion"]["body"]
     assert sections["basis_for_opinion"]["heading"] == "Basis for Adverse Opinion"
-    assert sections["basis_for_opinion"]["body"] == "the firm's basis"
+    assert sections["basis_for_opinion"]["body"] != "the firm's basis"
+    # Non-opinion sections keep the firm's edits.
     assert sections["signature"]["body"] == "kept as edited"
 
 

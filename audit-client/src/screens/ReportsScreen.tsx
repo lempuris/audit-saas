@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { useMe } from "../contexts/MeContext";
+import { formatApiError } from "../services/api";
 import { useApi } from "../hooks/useApi";
 import {
   OPINION_TYPES,
@@ -54,7 +55,7 @@ export default function ReportsScreen() {
         setDrafts(Object.fromEntries(rows.map((r) => [r.id, toDraft(r)])));
         setError(null);
       })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+      .catch((err: unknown) => setError(formatApiError(err)))
       .finally(() => setLoaded(true));
   }, [api, base, engagementId]);
 
@@ -69,7 +70,7 @@ export default function ReportsScreen() {
       setNotice(successNotice);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatApiError(err));
     } finally {
       setBusy(false);
     }
@@ -143,7 +144,7 @@ export default function ReportsScreen() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatApiError(err));
     } finally {
       setBusy(false);
     }
@@ -290,9 +291,8 @@ export default function ReportsScreen() {
                     </select>
                     {draft.opinion !== report.opinion_type && (
                       <span className="mt-1 text-xs text-amber-700">
-                        Saving will relabel the Opinion and Basis for Opinion headings for a{" "}
-                        {draft.opinion} opinion; your section text is kept — update the wording to
-                        match.
+                        Saving will replace the Opinion and Basis for Opinion sections with the
+                        standard wording for a {draft.opinion} opinion. Other sections are kept.
                       </span>
                     )}
                   </label>
