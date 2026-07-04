@@ -123,9 +123,17 @@ async def update_report(
     report_id: uuid.UUID,
     payload: ReportUpdate,
 ) -> ReportRecord:
-    engagement_lock.require_open(await _get_engagement(session, engagement_id))
+    engagement = await _get_engagement(session, engagement_id)
     report = await _get_report(session, engagement_id, report_id)
     is_partner = actor_role in (Role.PARTNER, Role.ADMIN)
+
+    # An archived (completed) engagement is read-only, but a Partner/Admin may
+    # still amend its reports (e.g. change the opinion): ISA 230 permits
+    # post-assembly modifications provided they are documented, which the
+    # audit-trail row below satisfies. Creating and deleting reports on an
+    # archived file stay locked for everyone.
+    if not is_partner:
+        engagement_lock.require_open(engagement)
 
     # A finalized report is locked to Partner/Admin.
     if report.status == ReportStatus.FINAL and not is_partner:
