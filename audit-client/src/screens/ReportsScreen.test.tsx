@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EngagementRecord, EngagementStatus } from "../types/engagements";
 import type { Me } from "../types/me";
 import type { ReportRecord } from "../types/reports";
 import ReportsScreen from "./ReportsScreen";
@@ -24,6 +25,16 @@ vi.mock("../contexts/MeContext", () => ({
 }));
 
 const engagementId = "55555555-5555-5555-5555-555555555555";
+
+const engagement: EngagementRecord = {
+  id: engagementId,
+  client_id: "44444444-4444-4444-4444-444444444444",
+  engagement_type: "audit",
+  fiscal_year: 2026,
+  status: "fieldwork",
+  created_at: "2026-06-19T08:00:00Z",
+  updated_at: "2026-06-19T08:00:00Z",
+};
 
 const auditReport: ReportRecord = {
   id: "22222222-2222-2222-2222-222222222222",
@@ -49,8 +60,12 @@ function renderScreen() {
   );
 }
 
-function mockReports(reports: ReportRecord[]) {
-  apiMock.get.mockImplementation(() => Promise.resolve(reports));
+function mockReports(reports: ReportRecord[], status: EngagementStatus = "fieldwork") {
+  apiMock.get.mockImplementation((path: string) =>
+    path === `/api/engagements/${engagementId}`
+      ? Promise.resolve({ ...engagement, status })
+      : Promise.resolve(reports),
+  );
 }
 
 beforeEach(() => {
@@ -180,5 +195,37 @@ describe("ReportsScreen", () => {
     await screen.findByText("No reports yet for this engagement.");
 
     expect(screen.queryByRole("button", { name: "Create audit report" })).not.toBeInTheDocument();
+  });
+
+  it("renders read-only with an archived banner on a completed engagement", async () => {
+    meState.me = { user_id: "user_2", session_id: null, role: "partner" };
+    mockReports([auditReport], "completed");
+    renderScreen();
+    await screen.findByText(/Audit report/);
+
+    expect(screen.getByText(/Archived & read-only/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Body for opinion")).toBeDisabled();
+    expect(screen.getByLabelText("Type of opinion")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Finalize" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create management letter" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeInTheDocument();
+  });
+
+  it("shows a failed save's error inside that report's card", async () => {
+    apiMock.patch.mockRejectedValue(new Error("Engagement is completed and archived (read-only)"));
+    renderScreen();
+    await screen.findByText(/Audit report/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    const message = await screen.findByText(
+      "Engagement is completed and archived (read-only)",
+    );
+    // Rendered next to the report's buttons, not in the page header.
+    expect(message.closest("section")).not.toBeNull();
   });
 });

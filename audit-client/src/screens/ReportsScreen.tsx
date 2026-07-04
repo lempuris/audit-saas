@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMe } from "../contexts/MeContext";
 import { formatApiError } from "../services/api";
 import { useApi } from "../hooks/useApi";
+import type { EngagementRecord } from "../types/engagements";
 import {
   OPINION_TYPES,
   reportTypeLabel,
@@ -37,10 +38,14 @@ export default function ReportsScreen() {
   const canFinalize = role === "admin" || role === "partner";
 
   const [reports, setReports] = useState<ReportRecord[]>([]);
+  const [engagement, setEngagement] = useState<EngagementRecord | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Report the message belongs to, so it renders next to that report's buttons
+  // instead of at the top of the page; null for screen-level actions.
+  const [actionReportId, setActionReportId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newOpinion, setNewOpinion] = useState<OpinionType>("unmodified");
 
@@ -49,22 +54,34 @@ export default function ReportsScreen() {
   const load = useCallback(() => {
     if (!engagementId) return;
     api
+      .get<EngagementRecord>(`/api/engagements/${engagementId}`)
+      .then(setEngagement)
+      .catch(() => setEngagement(null));
+    api
       .get<ReportRecord[]>(base)
       .then((rows) => {
         setReports(rows);
         setDrafts(Object.fromEntries(rows.map((r) => [r.id, toDraft(r)])));
         setError(null);
       })
-      .catch((err: unknown) => setError(formatApiError(err)))
+      .catch((err: unknown) => {
+        setActionReportId(null);
+        setError(formatApiError(err));
+      })
       .finally(() => setLoaded(true));
   }, [api, base, engagementId]);
 
   useEffect(load, [load]);
 
-  async function run(action: () => Promise<unknown>, successNotice: string) {
+  // A completed engagement is archived: the API refuses every write with 409,
+  // so render the reports read-only instead of offering doomed buttons.
+  const isArchived = engagement?.status === "completed";
+
+  async function run(action: () => Promise<unknown>, successNotice: string, reportId?: string) {
     setBusy(true);
     setNotice(null);
     setError(null);
+    setActionReportId(reportId ?? null);
     try {
       await action();
       setNotice(successNotice);
@@ -115,15 +132,24 @@ export default function ReportsScreen() {
           ...(draft.opinion ? { opinion_type: draft.opinion } : {}),
         }),
       "Report saved",
+      report.id,
     );
   }
 
   function finalize(report: ReportRecord) {
-    void run(() => api.patch(`${base}/${report.id}`, { status: "final" }), "Report finalized");
+    void run(
+      () => api.patch(`${base}/${report.id}`, { status: "final" }),
+      "Report finalized",
+      report.id,
+    );
   }
 
   function reopen(report: ReportRecord) {
-    void run(() => api.patch(`${base}/${report.id}`, { status: "draft" }), "Report reopened");
+    void run(
+      () => api.patch(`${base}/${report.id}`, { status: "draft" }),
+      "Report reopened",
+      report.id,
+    );
   }
 
   function remove(report: ReportRecord) {
@@ -133,6 +159,7 @@ export default function ReportsScreen() {
   async function downloadPdf(report: ReportRecord) {
     setBusy(true);
     setError(null);
+    setActionReportId(report.id);
     try {
       const blob = await api.getBlob(`${base}/${report.id}/pdf`);
       const url = URL.createObjectURL(blob);
@@ -165,10 +192,21 @@ export default function ReportsScreen() {
         </p>
       </div>
 
-      {notice && <p className="mt-3 text-sm text-green-700">{notice}</p>}
-      {error && <p className="mt-3 break-all text-sm text-red-700">{error}</p>}
+      {isArchived && (
+        <div className="mt-4 rounded border border-slate-300 bg-slate-50 p-3 text-sm text-slate-700">
+          <span className="font-medium">Archived &amp; read-only.</span> This engagement is
+          completed, so its reports can be viewed and downloaded but no longer changed.
+        </div>
+      )}
 
-      {canManage && (!hasType("audit_report") || !hasType("management_letter")) && (
+      {notice && actionReportId === null && (
+        <p className="mt-3 text-sm text-green-700">{notice}</p>
+      )}
+      {error && actionReportId === null && (
+        <p className="mt-3 break-all text-sm text-red-700">{error}</p>
+      )}
+
+      {canManage && !isArchived && (!hasType("audit_report") || !hasType("management_letter")) && (
         <div className="mt-4 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-white p-4">
           {!hasType("audit_report") && (
             <div className="flex items-end gap-2">
@@ -217,7 +255,7 @@ export default function ReportsScreen() {
       {reports.map((report) => {
         const draft = drafts[report.id];
         const isFinal = report.status === "final";
-        const editable = canManage && (!isFinal || canFinalize);
+        const editable = !isArchived && canManage && (!isFinal || canFinalize);
         return (
           <section
             key={report.id}
@@ -318,7 +356,14 @@ export default function ReportsScreen() {
                   </div>
                 ))}
 
-                {(editable || canFinalize) && (
+                {notice && actionReportId === report.id && (
+                  <p className="text-sm text-green-700">{notice}</p>
+                )}
+                {error && actionReportId === report.id && (
+                  <p className="break-all text-sm text-red-700">{error}</p>
+                )}
+
+                {!isArchived && (editable || canFinalize) && (
                   <div className="flex flex-wrap gap-2">
                     {editable && (
                       <button
