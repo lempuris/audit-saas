@@ -198,7 +198,6 @@ describe("ReportsScreen", () => {
   });
 
   it("renders read-only with an archived banner on a completed engagement", async () => {
-    meState.me = { user_id: "user_2", session_id: null, role: "partner" };
     mockReports([auditReport], "completed");
     renderScreen();
     await screen.findByText(/Audit report/);
@@ -213,6 +212,29 @@ describe("ReportsScreen", () => {
       screen.queryByRole("button", { name: "Create management letter" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download PDF" })).toBeInTheDocument();
+  });
+
+  it("lets a partner amend an archived report's opinion, but not create or delete", async () => {
+    meState.me = { user_id: "user_2", session_id: null, role: "partner" };
+    mockReports([auditReport], "completed");
+    renderScreen();
+    await screen.findByText(/Audit report/);
+
+    expect(screen.getByText(/you can still amend its reports/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create management letter" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Type of opinion"), { target: { value: "adverse" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(apiMock.patch).toHaveBeenCalledWith(
+        `/api/engagements/${engagementId}/reports/${auditReport.id}`,
+        expect.objectContaining({ opinion_type: "adverse" }),
+      ),
+    );
   });
 
   it("shows a failed save's error inside that report's card", async () => {

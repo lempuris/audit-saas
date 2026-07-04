@@ -73,9 +73,12 @@ export default function ReportsScreen() {
 
   useEffect(load, [load]);
 
-  // A completed engagement is archived: the API refuses every write with 409,
-  // so render the reports read-only instead of offering doomed buttons.
+  // A completed engagement is archived and read-only, except that the API
+  // lets a Partner/Admin still amend its reports (post-assembly opinion
+  // changes, documented in the audit trail). Creating and deleting reports
+  // stay locked for everyone.
   const isArchived = engagement?.status === "completed";
+  const archiveLocked = isArchived && !canFinalize;
 
   async function run(action: () => Promise<unknown>, successNotice: string, reportId?: string) {
     setBusy(true);
@@ -194,8 +197,12 @@ export default function ReportsScreen() {
 
       {isArchived && (
         <div className="mt-4 rounded border border-slate-300 bg-slate-50 p-3 text-sm text-slate-700">
-          <span className="font-medium">Archived &amp; read-only.</span> This engagement is
-          completed, so its reports can be viewed and downloaded but no longer changed.
+          <span className="font-medium">Archived &amp; read-only.</span>{" "}
+          {canFinalize
+            ? "This engagement is completed. As a Partner/Admin you can still amend its " +
+              "reports; every change is documented in the audit trail (ISA 230)."
+            : "This engagement is completed, so its reports can be viewed and downloaded " +
+              "but no longer changed."}
         </div>
       )}
 
@@ -255,7 +262,7 @@ export default function ReportsScreen() {
       {reports.map((report) => {
         const draft = drafts[report.id];
         const isFinal = report.status === "final";
-        const editable = !isArchived && canManage && (!isFinal || canFinalize);
+        const editable = !archiveLocked && canManage && (!isFinal || canFinalize);
         return (
           <section
             key={report.id}
@@ -363,7 +370,7 @@ export default function ReportsScreen() {
                   <p className="break-all text-sm text-red-700">{error}</p>
                 )}
 
-                {!isArchived && (editable || canFinalize) && (
+                {!archiveLocked && (editable || canFinalize) && (
                   <div className="flex flex-wrap gap-2">
                     {editable && (
                       <button
@@ -395,7 +402,7 @@ export default function ReportsScreen() {
                         Reopen
                       </button>
                     )}
-                    {canFinalize && (
+                    {canFinalize && !isArchived && (
                       <button
                         type="button"
                         disabled={busy}

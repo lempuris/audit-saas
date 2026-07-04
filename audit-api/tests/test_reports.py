@@ -204,6 +204,63 @@ async def test_changing_opinion_regenerates_opinion_sections() -> None:
 
 
 @pytest.mark.unit
+async def test_manager_cannot_edit_report_on_archived_engagement() -> None:
+    engagement = make_engagement(status="completed")
+    report = make_report(engagement.id)
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "qualified"},
+            headers=bearer("manager"),
+        )
+    assert response.status_code == 409
+    assert "read-only" in response.json()["detail"].lower()
+
+
+@pytest.mark.unit
+async def test_partner_amends_opinion_on_archived_engagement() -> None:
+    engagement = make_engagement(status="completed")
+    report = make_report(
+        engagement.id,
+        opinion_type="unmodified",
+        status="final",
+        sections=[
+            {"key": "opinion", "heading": "Opinion", "body": "the firm's opinion body"},
+            {"key": "basis_for_opinion", "heading": "Basis for Opinion", "body": "the basis"},
+        ],
+    )
+    session = FakeSession(rows=[engagement, report])
+    use_db(session)
+    async with client() as c:
+        response = await c.patch(
+            f"{base(engagement.id)}/{report.id}",
+            json={"opinion_type": "qualified"},
+            headers=bearer("partner"),
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["opinion_type"] == "qualified"
+    sections = {s["key"]: s for s in body["sections"]}
+    assert sections["opinion"]["heading"] == "Qualified Opinion"
+    # The post-assembly modification is documented (ISA 230) in the audit trail.
+    trail = [r for r in session.added if isinstance(r, AuditTrailEntry)]
+    assert len(trail) == 1
+    assert trail[0].before["opinion_type"] == "unmodified"
+    assert trail[0].after["opinion_type"] == "qualified"
+
+
+@pytest.mark.unit
+async def test_partner_cannot_delete_report_on_archived_engagement() -> None:
+    engagement = make_engagement(status="completed")
+    report = make_report(engagement.id)
+    use_db(FakeSession(rows=[engagement, report]))
+    async with client() as c:
+        response = await c.delete(f"{base(engagement.id)}/{report.id}", headers=bearer("partner"))
+    assert response.status_code == 409
+
+
+@pytest.mark.unit
 async def test_changing_opinion_on_management_letter_is_400() -> None:
     engagement = make_engagement()
     report = make_report(engagement.id, report_type="management_letter", opinion_type=None)
