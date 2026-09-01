@@ -5,6 +5,13 @@ Single Terraform stack: VPC, ECR, ECS Fargate (1 task) + ALB, RDS PostgreSQL
 ACM certificates, Route 53 hosted zone + records, SSM parameters, SES identity,
 and a GitHub Actions OIDC deploy role.
 
+> **The stack is currently PAUSED** (since 2026-09-01) to cut spend while the
+> project is on hold. The ALB and RDS instance are deleted and the ECS service
+> is scaled to zero; the database lives in the snapshot
+> `auditsaas-db-pause-20260901`. See [PAUSED.md](PAUSED.md) before running
+> `terraform plan` or `apply` — state still describes the full stack, so the
+> paused resources show up as drift by design.
+
 ## Bootstrap (one-time)
 
 > **No domain yet?** The stack can be applied with `domain_name = ""`: it
